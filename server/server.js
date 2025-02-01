@@ -1,0 +1,45 @@
+require('dotenv').config();
+const PORT = process.env.PORT || 8000; 
+const express = require("express");
+const cors = require("cors");
+const cookieParser = require('cookie-parser');
+
+const app = express();
+
+app.use(cookieParser());
+
+// Configuración de CORS
+const corsOptions = {
+    origin: "http://localhost:5173", // Reemplaza con la URL de tu frontend
+    methods: "GET, POST, PUT, DELETE",
+    credentials: true, // Si necesitas enviar cookies
+    exposedHeaders: ["Authorization"],
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Maneja solicitudes preflight
+
+app.use(express.json()); 
+
+// Conexión a MongoDB (usando Mongoose)
+require("./config/mongoose.config");
+
+// Rutas
+const pacientesRouter = require('./routes/paciente.route');
+app.use('/api/pacientes', pacientesRouter);
+
+const medicosRouter = require('./routes/medico.route');
+app.use('/api/medicos', medicosRouter);
+
+const citasRouter = require('./routes/cita.route');
+app.use('/api/citas', citasRouter);
+
+const enfermerosRouter = require('./routes/enfermero.route');
+app.use('/api/enfermeros', enfermerosRouter);
+
+const usuariosRouter = require('./routes/usuario.route');
+app.use('/api/usuarios', usuariosRouter);
+
+// Iniciar servidor
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});

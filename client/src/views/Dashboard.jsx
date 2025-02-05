@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { UserContext } from "../context/UserContext";
 import TableComponent from "../components/TableComponent";
+import  TableAdmin  from "../components/TableAdmin";
 
 const Dashboard = () => {
   const { user } = useContext(UserContext);
@@ -18,8 +19,12 @@ const Dashboard = () => {
 
   return (
     <div>
+     {user?.rol != "administrador" ? (
+         <TableComponent />
+     ) : (
+   <TableAdmin />
+     )}
      
-      <TableComponent />
     </div>
   );
 };

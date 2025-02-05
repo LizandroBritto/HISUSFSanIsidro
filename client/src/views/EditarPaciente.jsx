@@ -59,7 +59,7 @@ const EditarPaciente = () => {
       });
       if (response.status === 200) {
          Swal.fire({
-                 title: "Cita actualizada exitosamente",
+                 title: "Paciente actualizado exitosamente",
                  icon: "success",
                  draggable: true,
                });
@@ -74,7 +74,7 @@ const EditarPaciente = () => {
     }
   };
 
-  if (user?.rol !== "enfermero") {
+  if (user?.rol !== "enfermero" && user?.rol !== "medico") {
     return <div className="p-4"><p className="text-red-500">Acceso restringido a enfermeros</p></div>;
   }
 
@@ -146,6 +146,12 @@ const EditarPaciente = () => {
           <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
             Actualizar Paciente
           </button>
+          <a
+              type="submit"
+              className="w-full flex justify-center bg-red-500 text-white py-2 rounded hover:bg-red-600"
+              onClick={() => navigate("/dashboard")}>
+              Cancelar
+            </a>
         </div>
       </Form>
     </Formik>

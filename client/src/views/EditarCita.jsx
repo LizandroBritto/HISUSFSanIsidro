@@ -242,32 +242,37 @@ const EditarCita = () => {
                 className="text-red-500 text-sm"
               />
             </div>
-            <div>
-              <label className="block mb-1">Estudios</label>
-              <Field
-                type="text"
-                name="estudios"
-                className="w-full p-2 border rounded"
-              />
-              <ErrorMessage
-                name="estudios"
-                component="div"
-                className="text-red-500 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block mb-1">Observaciones</label>
-              <Field
-                type="text"
-                name="observaciones"
-                className="w-full p-2 border rounded"
-              />
-              <ErrorMessage
-                name="observaciones"
-                component="div"
-                className="text-red-500 text-sm"
-              />
-            </div>
+
+            {user?.rol === "medico" && (
+              <>
+                <div>
+                  <label className="block mb-1">Estudios</label>
+                  <Field
+                    type="text"
+                    name="estudios"
+                    className="w-full p-2 border rounded"
+                  />
+                  <ErrorMessage
+                    name="estudios"
+                    component="div"
+                    className="text-red-500 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">Observaciones</label>
+                  <Field
+                    type="text"
+                    name="observaciones"
+                    className="w-full p-2 border rounded"
+                  />
+                  <ErrorMessage
+                    name="observaciones"
+                    component="div"
+                    className="text-red-500 text-sm"
+                  />
+                </div>
+              </>
+            )}
 
             <button
               type="submit"
@@ -275,6 +280,13 @@ const EditarCita = () => {
             >
               Actualizar Cita
             </button>
+            <a
+              type="submit"
+              className="w-full flex justify-center bg-red-500 text-white py-2 rounded hover:bg-red-600"
+              onClick={() => navigate("/dashboard")}
+            >
+              Cancelar
+            </a>
           </div>
         </Form>
       )}

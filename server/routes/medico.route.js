@@ -13,6 +13,9 @@ MedicoRouter.post("/new", authenticate, MedicoController.createMedico); // Ruta 
 MedicoRouter.put("/:id", authenticate, MedicoController.updateOneMedicoById); // Ruta protegida
 
 MedicoRouter.delete("/:id", authenticate, MedicoController.deleteOneMedicoById); // Ruta protegida
+MedicoRouter.put("/sala/:id", authenticate, MedicoController.actualizarSalaMedico);
+
+MedicoRouter.get("/usuario/:id", authenticate, MedicoController.getMedicoByUsuarioId);
 
 MedicoRouter.get("/especialidad/:especialidad", authenticate, MedicoController.findByEspecialidad);  // Ruta protegida
 

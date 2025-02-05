@@ -3,8 +3,8 @@ const { verifyToken } = require('../config/jwt.config');
 const allowedRoles = {
   '/api/pacientes': {
     get: ['administrador', 'medico', 'enfermero'],
-    post: ['administrador', 'enfermero'],
-    put: ['administrador', 'enfermero'],
+    post: ['administrador', 'medico', 'enfermero'],
+    put: ['administrador',  'medico', 'enfermero'],
     delete: ['administrador'],
   },
   '/api/medicos': {
@@ -15,8 +15,8 @@ const allowedRoles = {
   },
   '/api/citas': {
     get: ['administrador', 'medico', 'enfermero'],
-    post: ['administrador', 'enfermero'],
-    put: ['administrador', 'enfermero'],
+    post: ['administrador', 'medico', 'enfermero'],
+    put: ['administrador', 'medico', 'enfermero'],
     delete: ['administrador'],
   },
   '/api/enfermeros': {

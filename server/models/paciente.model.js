@@ -48,6 +48,14 @@ const pacienteSchema = new mongoose.Schema({
       message: props => `${props.value} no es un número de teléfono válido!`
     }
   },
+  estadoPaciente: { 
+    type: String, 
+    enum: {
+      values: ['Activo', 'Inactivo'],
+      message: 'El estado del paciente debe ser Activo o Inactivo'
+    },
+    default: 'Activo'
+  },
   grupoSanguineo: String,
   alergias: String,
   enfermedadesPreexistentes: String 

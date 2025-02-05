@@ -14,7 +14,15 @@ module.exports = {
       .then(enfermero => res.json(enfermero))
       .catch(err => res.status(400).json('Error: ' + err));
   },
-
+  getEnfermeroByUsuarioId: async (req, res) => {
+    try {
+      const enfermero = await Enfermero.findOne({ usuario: req.params.id });
+      if (!enfermero) return res.status(404).json({ error: "Enfermero no encontrado" });
+      res.json(enfermero);
+    } catch (err) {
+      res.status(400).json("Error: " + err);
+    }
+  },
   // Crear un nuevo enfermero
   createEnfermero: (req, res) => {
     const nuevoEnfermero = new Enfermero(req.body);

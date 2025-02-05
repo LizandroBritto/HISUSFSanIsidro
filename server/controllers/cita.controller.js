@@ -1,16 +1,16 @@
-const Cita = require('../models/cita.model');
+const Cita = require("../models/cita.model");
 
 module.exports = {
   // Obtener todas las citas
   getAllCitas: (req, res) => {
     Cita.find()
-      .populate('paciente') // Obtiene los datos del paciente asociado
+      .populate("paciente") // Obtiene los datos del paciente asociado
       .populate({
-        path: 'medico',      // Obtiene los datos del médico
-        populate: { path: 'usuario' }  // Y anida el populate del campo "usuario"
+        path: "medico", // Obtiene los datos del médico
+        populate: { path: "usuario" }, // Y anida el populate del campo "usuario"
       })
-      .then(citas => res.json(citas))
-      .catch(err => res.status(400).json('Error: ' + err));
+      .then((citas) => res.json(citas))
+      .catch((err) => res.status(400).json("Error: " + err));
   },
 
   // Obtener una cita por ID
@@ -18,7 +18,8 @@ module.exports = {
     Cita.findById(req.params.id)
       .populate({
         path: "paciente", // ¡Asegúrate de que el path coincida con tu schema!
-        select: "nombre apellido", // Selecciona solo los campos necesarios
+        select:
+          "nombre apellido cedula enfermedadesPreexistentes alergias sexo grupoSanguineo telefono direccion fechaNacimiento", // Selecciona solo los campos necesarios
       })
       .populate({
         path: "medico",
@@ -31,23 +32,44 @@ module.exports = {
   // Crear una nueva cita
   createCita: async (req, res) => {
     try {
-      const { doctor, paciente, horario, estado } = req.body;
-   
-      // Validación 2: Un doctor no puede tener dos citas en el mismo horario
-      const citaDoctorExistente = await Cita.findOne({ doctor, horario });
-      if (citaDoctorExistente) {
-        return res.status(400).json({ error: "El doctor ya tiene una cita en ese mismo horario" });
+      const { medico, fecha, hora, estado, paciente } = req.body;
+
+      const fechaObj = new Date(fecha);
+
+      const inicioDelDia = new Date(fechaObj);
+      inicioDelDia.setHours(0, 0, 0, 0);
+
+      const finDelDia = new Date(fechaObj);
+      finDelDia.setHours(23, 59, 59, 999);
+
+      const citaExistente = await Cita.findOne({
+        medico, // Campo 'medico' en el modelo
+        fecha: { $gte: inicioDelDia, $lte: finDelDia },
+        hora, // Campo 'hora' en el modelo
+      });
+
+      if (citaExistente) {
+        return res
+          .status(400)
+          .json({ error: "El doctor ya tiene una cita en ese mismo horario" });
       }
 
-      // Validación 3: Un paciente no puede tener más de una cita pendiente
-      const citaPendientePaciente = await Cita.findOne({ paciente, estado: 'pendiente' });
+      // Validar que no exista una cita con el mismo doctor y horario en la misma fecha
+
+      const citaPendientePaciente = await Cita.findOne({
+        paciente,
+        estado: "pendiente",
+      });
       if (citaPendientePaciente) {
-        return res.status(400).json({ error: "El paciente ya tiene una cita pendiente" });
+        return res
+          .status(400)
+          .json({ error: "El paciente ya tiene una cita pendiente" });
       }
 
-      // Validación 4: La fecha/hora de la cita debe ser en el futuro
-      if (new Date(horario) <= new Date()) {
-        return res.status(400).json({ error: "La cita debe tener un horario en el futuro" });
+      if (new Date(hora) <= new Date()) {
+        return res
+          .status(400)
+          .json({ error: "La cita debe tener un horario en el futuro" });
       }
 
       const nuevaCita = new Cita(req.body);
@@ -62,43 +84,85 @@ module.exports = {
   // Actualizar una cita
   updateOneCitaById: async (req, res) => {
     try {
-      const { doctor, paciente, horario, estado } = req.body;
-
-      // Si se actualiza el horario o el doctor, validamos que no exista conflicto:
-      if (doctor && horario) {
-        const citaConflict = await Cita.findOne({ 
-          _id: { $ne: req.params.id },  // Excluimos la cita que se está actualizando
-          doctor, 
-          horario 
+      const { medico, fecha, hora, estado, paciente } = req.body;
+  
+      // Si se actualiza el horario o el médico, validamos que no exista conflicto.
+      // Es importante considerar tanto la fecha como la hora.
+      if (medico && fecha && hora) {
+        // Convertimos la fecha y hora en un objeto Date.
+        // Suponemos que `hora` viene en formato "HH:mm" y `fecha` en formato "YYYY-MM-DD".
+        const fechaHoraActualizada = new Date(`${fecha}T${hora}:00`);
+        
+        // Creamos un rango para la fecha, en caso de que en la base se almacene la fecha sin la hora.
+        const inicioDelDia = new Date(fecha);
+        inicioDelDia.setHours(0, 0, 0, 0);
+        const finDelDia = new Date(fecha);
+        finDelDia.setHours(23, 59, 59, 999);
+  
+        const citaConflict = await Cita.findOne({
+          _id: { $ne: req.params.id }, // Excluimos la cita que se está actualizando
+          medico,
+          // Comprobamos que la fecha se encuentre dentro del día y la hora sea la misma.
+          fecha: { $gte: inicioDelDia, $lte: finDelDia },
+          hora, // Se asume que la hora se almacena en el mismo formato (ej. "05:40")
         });
         if (citaConflict) {
-          return res.status(400).json({ error: "El doctor ya tiene una cita en ese mismo horario" });
+          return res
+            .status(400)
+            .json({ error: "El doctor ya tiene una cita en ese mismo horario" });
         }
       }
-
-      // Si se actualiza el estado a "pendiente", se debe validar que el paciente no tenga otra pendiente
-      if (estado === 'pendiente') {
-        const citaPendiente = await Cita.findOne({ 
+  
+      // Si se actualiza el estado a "pendiente", se debe validar que el paciente no tenga otra pendiente.
+      if (estado === "pendiente") {
+        const citaPendiente = await Cita.findOne({
           _id: { $ne: req.params.id },
-          paciente, 
-          estado: 'pendiente' 
+          paciente,
+          estado: "pendiente",
         });
         if (citaPendiente) {
-          return res.status(400).json({ error: "El paciente ya tiene una cita pendiente" });
+          return res
+            .status(400)
+            .json({ error: "El paciente ya tiene una cita pendiente" });
         }
       }
-
-      // Validar que, si se actualiza el horario, sea en el futuro
-      if (horario && new Date(horario) <= new Date()) {
-        return res.status(400).json({ error: "La cita debe tener un horario en el futuro" });
+  
+      // Validar que, si se actualiza el horario (fecha y hora), sea en el futuro.
+      if (fecha && hora) {
+        // Combinamos fecha y hora para crear el objeto Date.
+        const fechaHora = new Date(`${fecha}T${hora}:00`);
+        if (fechaHora <= new Date()) {
+          return res
+            .status(400)
+            .json({ error: "La cita debe tener un horario en el futuro" });
+        }
       }
-
-      // (Opcional) Validar que si se actualiza el doctor o paciente, existan en sus respectivas colecciones.
-
-      const citaActualizada = await Cita.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  
+      // (Opcional) Validar que si se actualiza el médico o paciente, existan en sus respectivas colecciones.
+  
+      const citaActualizada = await Cita.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true }
+      );
       return res.json(citaActualizada);
     } catch (error) {
       console.error("Error al actualizar cita:", error);
+      return res.status(400).json({ error: error.message });
+    }
+  },
+  getCitasByPaciente: async (req, res) => {
+    try {
+      const pacienteId = req.params.id; // ID del paciente obtenido de la URL
+      const citas = await Cita.find({ paciente: pacienteId })
+        .populate('paciente') // Popula los datos del paciente
+        .populate({
+          path: 'medico',
+          populate: { path: 'usuario' } // Popula los datos del usuario asociado al médico
+        });
+      return res.json(citas);
+    } catch (error) {
+      console.error("Error al obtener citas del paciente:", error);
       return res.status(400).json({ error: error.message });
     }
   },
@@ -106,7 +170,7 @@ module.exports = {
   // Eliminar una cita
   deleteOneCitaById: (req, res) => {
     Cita.findByIdAndDelete(req.params.id)
-      .then(() => res.json('Cita eliminada.'))
-      .catch(err => res.status(400).json('Error: ' + err));
-  }
+      .then(() => res.json("Cita eliminada."))
+      .catch((err) => res.status(400).json("Error: " + err));
+  },
 };

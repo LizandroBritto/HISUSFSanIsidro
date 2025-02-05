@@ -82,7 +82,7 @@ const CrearCita = () => {
         }
       );
 
-      if (response.status === 200) {
+      if (response.status === 201) {
          Swal.fire({
                   title: "Cita creada exitosamente",
                   icon: "success",
@@ -248,7 +248,9 @@ const CrearCita = () => {
                 className="text-red-500 text-sm"
               />
             </div>
-            <div>
+            {user?.rol === "medico" && (
+              <>
+                    <div>
               <label className="block mb-1">Estudios</label>
               <Field
                 type="text"
@@ -274,13 +276,24 @@ const CrearCita = () => {
                 className="text-red-500 text-sm"
               />
             </div>
-
-            <button
+              </>
+            )}
+      
+                <div className="flex gap-1">
+                <button
               type="submit"
               className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
             >
               Crear Cita
             </button>
+            <a
+              type="submit"
+              className="w-full flex justify-center bg-red-500 text-white py-2 rounded hover:bg-red-600"
+              onClick={() => navigate("/dashboard")}>
+              Cancelar
+            </a>
+                </div>
+         
           </div>
         </Form>
       )}

@@ -45,6 +45,26 @@ module.exports = {
   },
 
   // Actualizar un paciente
+  cambiarEstadoPaciente: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const paciente = await Paciente.findById(id);
+      if (!paciente) {
+        return res.status(404).json({ message: "Paciente no encontrado" });
+      }
+  
+      // Alternar estado entre activo e inactivo
+      paciente.estadoPaciente = paciente.estadoPaciente === "Activo" ? "Inactivo" : "Activo";
+      await paciente.save();
+  
+      res.json(paciente);
+    } catch (error) {
+      res.status(500).json({ message: "Error al cambiar estado", error });
+    }
+  },
+  
+  
+
   updateOnePacienteById: async (req, res) => {
     try {
       const pacienteActualizado = await Paciente.findByIdAndUpdate(req.params.id, req.body, { new: true });

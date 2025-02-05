@@ -12,6 +12,8 @@ EnfermeroRouter.post("/new", authenticate, EnfermeroController.createEnfermero);
 
 EnfermeroRouter.put("/:id", authenticate, EnfermeroController.updateOneEnfermeroById);
 
+EnfermeroRouter.get("/usuario/:id", authenticate, EnfermeroController.getEnfermeroByUsuarioId);
+
 EnfermeroRouter.delete("/:id", authenticate, EnfermeroController.deleteOneEnfermeroById);
 
 module.exports = EnfermeroRouter;

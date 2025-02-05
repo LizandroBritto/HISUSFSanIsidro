@@ -12,6 +12,8 @@ CitaRouter.post("/new", authenticate, CitaController.createCita);
 
 CitaRouter.put("/:id", authenticate, CitaController.updateOneCitaById);
 
+CitaRouter.get("/paciente/:id", CitaController.getCitasByPaciente);
+
 CitaRouter.delete("/:id", authenticate, CitaController.deleteOneCitaById);
 
 module.exports = CitaRouter;

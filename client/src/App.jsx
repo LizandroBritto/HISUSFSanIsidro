@@ -8,6 +8,11 @@ import CrearPaciente from "./views/CrearPaciente";
 import CrearCita from "./views/CrearCita";
 import EditarPaciente from "./views/EditarPaciente";
 import EditarCita from "./views/EditarCita";
+import CitaDetalle from "./views/CitaDetalle";
+import PacienteDetalle from "./views/PacienteDetalle";
+import PacienteCitas from "./views/PacienteCitas";
+import EditarUsuario from "./views/EditarUsuario";
+import Register from "./views/Register";
 
 function App() {
   return (
@@ -23,6 +28,11 @@ function App() {
         <Route path="/editar-paciente/:id" element={<EditarPaciente />} />
         <Route path="/editar-cita/:id" element={<EditarCita />} />
         <Route path="/crear-paciente" element={<CrearPaciente />} />
+        <Route path="/cita-detalle/:id" element={<CitaDetalle />} />
+        <Route path="/paciente-detalle/:id" element={<PacienteDetalle />} />
+        <Route path="/paciente-citas/:id" element={<PacienteCitas />} />
+        <Route path="/editar-usuario/:id" element={<EditarUsuario />} />
+        <Route path="/tuHermana" element={<Register />} />
       </Routes>
     </UserProvider>
   );

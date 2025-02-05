@@ -88,7 +88,7 @@ const LoginForm = ({ formType }) => {
             {({ isSubmitting, errors }) => (
                 <Form className="flex flex-col gap-4 justify-center max-w-2xl ml-72">
                     <h2 className="text-xl font-bold text-white ">
-                        {formType === "Iniciar Sesion" ? "Iniciar Sesión" : "Registrarse"}
+                        {formType === "Iniciar Sesion" ? "Iniciar Sesión" : "Iniciar Sesión"}
                     </h2>
                     
                     {errors.general && (
@@ -100,7 +100,7 @@ const LoginForm = ({ formType }) => {
                             type="text" 
                             name="ci" 
                             placeholder="Cédula" 
-                            className="w-full p-2 rounded text-gray-900"
+                            className="w-full p-2 rounded text-white"
                         />
                         <ErrorMessage name="ci" component="div" className="text-red-500 text-sm" />
                     </div>
@@ -110,7 +110,7 @@ const LoginForm = ({ formType }) => {
                             type="password" // Corregido a "password"
                             name="contrasena" 
                             placeholder="Contraseña" 
-                            className="w-full p-2 rounded text-gray-900"
+                            className="w-full p-2 rounded  text-white"
                         />
                         <ErrorMessage name="contrasena" component="div" className="text-red-500 text-sm" />
                     </div>

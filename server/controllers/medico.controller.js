@@ -4,9 +4,17 @@ module.exports = {
   // Obtener todos los médicos
   getAllMedicos: (req, res) => {
     Medico.find()
-      .populate("usuario") // Esto agrega los datos del usuario (nombre, apellido, etc.)
-      .then(medicos => res.json(medicos))
-      .catch(err => res.status(400).json('Error: ' + err));
+      .populate({
+        path: 'usuario',
+        model: 'Usuario', // Asegurar el nombre correcto del modelo
+        select: 'nombre apellido ci rol', // Seleccionar solo campos necesarios
+      })
+      .then(medicos => {
+        // Filtrar médicos con usuario válido
+        const medicosValidos = medicos.filter(m => m.usuario !== null);
+        res.json(medicosValidos);
+      })
+      .catch(err => res.status(500).json('Error: ' + err));
   },
 
   // Obtener un médico por ID
@@ -47,7 +55,38 @@ module.exports = {
       .then(medico => res.json(medico))
       .catch(err => res.status(400).json('Error: ' + err));
   },
-
+  getMedicoByUsuarioId: async (req, res) => {
+    try {
+      const medico = await Medico.findOne({ usuario: req.params.id });
+      if (!medico) return res.status(404).json({ error: "Médico no encontrado" });
+      res.json(medico);
+    } catch (err) {
+      res.status(400).json("Error: " + err);
+    }
+  },
+  actualizarSalaMedico: async (req, res) => {
+    try {
+      const { id } = req.params; // ID del médico (por ejemplo, user._id o el ID de medico)
+      const { sala } = req.body; // La nueva sala que se envía en el body
+  
+      if (!sala || sala.trim() === "") {
+        return res.status(400).json({ error: "La sala es requerida" });
+      }
+  
+      const medico = await Medico.findById(id);
+      if (!medico) {
+        return res.status(404).json({ error: "Médico no encontrado" });
+      }
+  
+      medico.sala = sala;
+      await medico.save();
+  
+      res.status(200).json(medico);
+    } catch (error) {
+      console.error("Error al actualizar sala del médico:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  },
   // Eliminar un médico
   deleteOneMedicoById: (req, res) => {
     Medico.findByIdAndDelete(req.params.id)

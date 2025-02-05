@@ -14,6 +14,8 @@ PacientesRouter.put("/:id", authenticate, PacienteController.updateOnePacienteBy
 
 PacientesRouter.delete("/:id", authenticate, PacienteController.deleteOnePacienteById);
 
+PacientesRouter.put("/estado/:id", authenticate, PacienteController.cambiarEstadoPaciente);
+
 PacientesRouter.get("/cedula/:cedula", authenticate, PacienteController.findByCedula); 
 
 module.exports = PacientesRouter;

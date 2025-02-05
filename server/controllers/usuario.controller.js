@@ -77,9 +77,27 @@ module.exports = {
 
   // Obtener todos los usuarios
   getAllUsuarios: (req, res) => {
-    Usuario.find()
-      .then((usuarios) => res.json(usuarios))
-      .catch((err) => res.status(400).json("Error: " + err));
+    Usuario.aggregate([
+      {
+        $lookup: {
+          from: "medicos", // Nombre de la colección en MongoDB
+          localField: "_id",
+          foreignField: "usuario",
+          as: "medicoInfo"
+        }
+      },
+      {
+        $project: {
+          nombre: 1,
+          apellido: 1,
+          ci: 1,
+          rol: 1,
+          especialidad: { $arrayElemAt: ["$medicoInfo.especialidad", 0] }
+        }
+      }
+    ])
+    .then(usuarios => res.json(usuarios))
+    .catch(err => res.status(400).json("Error: " + err));
   },
 
   // Obtener un usuario por ID

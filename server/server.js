@@ -10,7 +10,11 @@ app.use(cookieParser());
 
 // Configuración de CORS
 const corsOptions = {
-    origin: ["http://localhost:5173", "http://3.15.0.129"], // Reemplaza con la URL de tu frontend
+    origin: [ "http://3.15.0.129:8000",
+      "http://localhost:5173",
+      "http://3.15.0.129",       // Si el frontend está en el puerto 80
+      "http://3.15.0.129:5173", // Si el frontend está en el puerto 5173
+    ], // Reemplaza con la URL de tu frontend
     methods: "GET, POST, PUT, DELETE",
     credentials: true, // Si necesitas enviar cookies
     exposedHeaders: ["Authorization"],

@@ -10,7 +10,7 @@ app.use(cookieParser());
 
 // Configuración de CORS
 const corsOptions = {
-    origin: "http://localhost:5173", // Reemplaza con la URL de tu frontend
+    origin: ["http://localhost:5173", "http://3.15.0.129"], // Reemplaza con la URL de tu frontend
     methods: "GET, POST, PUT, DELETE",
     credentials: true, // Si necesitas enviar cookies
     exposedHeaders: ["Authorization"],
@@ -40,6 +40,6 @@ const usuariosRouter = require('./routes/usuario.route');
 app.use('/api/usuarios', usuariosRouter);
 
 // Iniciar servidor
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);
 });

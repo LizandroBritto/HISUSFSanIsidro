@@ -1,6 +1,6 @@
 import LoginForm from "../components/LoginForm";
 import { useContext, useEffect } from "react";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 
@@ -27,6 +27,10 @@ const Login = () => {
     }
   }, [user, navigate]);
 
-  return <LoginForm />;
+  return (
+    <div>
+      <LoginForm />
+    </div>
+  );
 };
 export default Login;

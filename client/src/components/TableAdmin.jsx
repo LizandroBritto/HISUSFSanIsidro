@@ -22,6 +22,13 @@ const TableAdmin = () => {
       : 'No aplica';
   };
 
+  // Función para obtener la sala
+  const getSala = (user) => {
+    return user.rol === 'medico' 
+      ? user.sala || 'Sin sala' 
+      : 'No aplica';
+  };
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -81,6 +88,7 @@ const TableAdmin = () => {
           <TableHeadCell>CI</TableHeadCell>
           <TableHeadCell>Rol</TableHeadCell>
           <TableHeadCell>Especialidad</TableHeadCell>
+          <TableHeadCell>Sala</TableHeadCell>
           <TableHeadCell>Acciones</TableHeadCell>
         </TableHead>
         <TableBody className="divide-y">
@@ -92,6 +100,7 @@ const TableAdmin = () => {
               <TableCell>{user.ci}</TableCell>
               <TableCell className="capitalize">{user.rol}</TableCell>
               <TableCell>{getEspecialidad(user)}</TableCell>
+              <TableCell>{getSala(user)}</TableCell>
               <TableCell>
                 <div className="flex gap-2">
                   <Button as={Link} to={`/editar-usuario/${user._id}`} color="blue">

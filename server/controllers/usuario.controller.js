@@ -139,12 +139,29 @@ module.exports = {
         },
       },
       {
+        $lookup: {
+          from: "especialidads", // Nombre de la colección de especialidades
+          localField: "medicoInfo.especialidad",
+          foreignField: "_id",
+          as: "especialidadInfo",
+        },
+      },
+      {
+        $lookup: {
+          from: "salas", // Nombre de la colección de salas
+          localField: "medicoInfo.sala",
+          foreignField: "_id",
+          as: "salaInfo",
+        },
+      },
+      {
         $project: {
           nombre: 1,
           apellido: 1,
           ci: 1,
           rol: 1,
-          especialidad: { $arrayElemAt: ["$medicoInfo.especialidad", 0] },
+          especialidad: { $arrayElemAt: ["$especialidadInfo.nombre", 0] },
+          sala: { $arrayElemAt: ["$salaInfo.nombre", 0] },
         },
       },
     ])
@@ -163,8 +180,16 @@ module.exports = {
 
   createUsuario: async (req, res) => {
     try {
-      const { nombre, apellido, ci, contrasena, rol, ...otrosCampos } =
-        req.body;
+      const {
+        nombre,
+        apellido,
+        ci,
+        contrasena,
+        rol,
+        especialidad,
+        sala,
+        area,
+      } = req.body;
 
       // Validar campos básicos
       if (!nombre || !apellido || !ci || !contrasena || !rol) {
@@ -174,14 +199,11 @@ module.exports = {
       }
 
       // Validar campos según el rol
-      if (
-        rol === "medico" &&
-        (!otrosCampos.especialidad || !otrosCampos.sala)
-      ) {
+      if (rol === "medico" && (!especialidad || !sala)) {
         return res
           .status(400)
           .json({ error: "Especialidad y sala son requeridos para médicos" });
-      } else if (rol === "enfermero" && !otrosCampos.area) {
+      } else if (rol === "enfermero" && !area) {
         return res
           .status(400)
           .json({ error: "Área es requerida para enfermeros" });
@@ -205,16 +227,23 @@ module.exports = {
 
       // Crear registro específico según el rol
       if (rol === "medico") {
+        console.log("Creando médico con datos:", {
+          usuario: nuevoUsuario._id,
+          especialidad,
+          sala,
+        });
+
         const nuevoMedico = new Medico({
           usuario: nuevoUsuario._id,
-          especialidad: otrosCampos.especialidad,
-          sala: otrosCampos.sala,
+          especialidad: especialidad,
+          sala: sala,
         });
         await nuevoMedico.save();
+        console.log("Médico creado exitosamente:", nuevoMedico._id);
       } else if (rol === "enfermero") {
         const nuevoEnfermero = new Enfermero({
           usuario: nuevoUsuario._id,
-          area: otrosCampos.area,
+          area: area,
         });
         await nuevoEnfermero.save(); //
       }
@@ -232,9 +261,9 @@ module.exports = {
             apellido,
             ci,
             rol,
-            especialidad: otrosCampos.especialidad,
-            sala: otrosCampos.sala,
-            area: otrosCampos.area,
+            especialidad: especialidad,
+            sala: sala,
+            area: area,
           },
         }
       );
@@ -292,9 +321,38 @@ module.exports = {
   },
 
   // Eliminar un usuario
-  deleteOneUsuarioById: (req, res) => {
-    Usuario.findByIdAndDelete(req.params.id)
-      .then(() => res.json("Usuario eliminado."))
-      .catch((err) => res.status(400).json("Error: " + err));
+  deleteOneUsuarioById: async (req, res) => {
+    try {
+      // Primero obtener los datos del usuario antes de eliminarlo
+      const usuario = await Usuario.findById(req.params.id);
+      if (!usuario) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      }
+
+      // Eliminar usuario
+      await Usuario.findByIdAndDelete(req.params.id);
+
+      // Crear log de eliminación
+      await crearLogManual(
+        req,
+        "ELIMINAR_USUARIO",
+        "Usuario",
+        `Usuario eliminado - ${usuario.nombre} ${usuario.apellido} (${usuario.ci}) - Rol: ${usuario.rol}`,
+        {
+          entidadId: usuario._id,
+          datosAntes: {
+            nombre: usuario.nombre,
+            apellido: usuario.apellido,
+            ci: usuario.ci,
+            rol: usuario.rol,
+          },
+        }
+      );
+
+      res.json({ message: "Usuario eliminado exitosamente" });
+    } catch (err) {
+      console.error("Error al eliminar usuario:", err);
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
   },
 };

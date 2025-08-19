@@ -78,12 +78,24 @@ const crearLogManual = async (
   datosExtra = {}
 ) => {
   try {
+    console.log("🔍 crearLogManual ejecutándose:", {
+      accion,
+      entidad,
+      descripcion,
+    });
     const usuario = req.user;
 
     if (!usuario) {
       console.log("❌ No hay usuario en req.user para crear log");
       return;
     }
+
+    console.log(
+      "✅ Usuario encontrado:",
+      usuario.nombre,
+      usuario.apellido,
+      usuario.rol
+    );
 
     const datosLog = {
       usuario: usuario._id,
@@ -98,9 +110,11 @@ const crearLogManual = async (
       ...datosExtra,
     };
 
+    console.log("📝 Datos del log a crear:", datosLog);
     await crearLog(datosLog);
+    console.log("✅ Log creado exitosamente");
   } catch (error) {
-    console.error("Error al crear log manual:", error);
+    console.error("❌ Error al crear log manual:", error);
   }
 };
 

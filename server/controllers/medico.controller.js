@@ -1,27 +1,33 @@
-const Medico = require('../models/medico.model');
+const Medico = require("../models/medico.model");
+const Usuario = require("../models/usuario.model");
 
 module.exports = {
   // Obtener todos los médicos
   getAllMedicos: (req, res) => {
     Medico.find()
       .populate({
-        path: 'usuario',
-        model: 'Usuario', // Asegurar el nombre correcto del modelo
-        select: 'nombre apellido ci rol', // Seleccionar solo campos necesarios
+        path: "usuario",
+        model: "Usuario", // Asegurar el nombre correcto del modelo
+        select: "nombre apellido ci rol", // Seleccionar solo campos necesarios
       })
-      .then(medicos => {
+      .populate("especialidad", "nombre descripcion")
+      .populate("sala", "numero nombre")
+      .then((medicos) => {
         // Filtrar médicos con usuario válido
-        const medicosValidos = medicos.filter(m => m.usuario !== null);
+        const medicosValidos = medicos.filter((m) => m.usuario !== null);
         res.json(medicosValidos);
       })
-      .catch(err => res.status(500).json('Error: ' + err));
+      .catch((err) => res.status(500).json("Error: " + err));
   },
 
   // Obtener un médico por ID
   getOneMedico: (req, res) => {
     Medico.findById(req.params.id)
-      .then(medico => res.json(medico))
-      .catch(err => res.status(400).json('Error: ' + err));
+      .populate("usuario", "nombre apellido ci rol")
+      .populate("especialidad", "nombre descripcion")
+      .populate("sala", "numero nombre")
+      .then((medico) => res.json(medico))
+      .catch((err) => res.status(400).json("Error: " + err));
   },
 
   // Crear un nuevo médico
@@ -31,19 +37,25 @@ module.exports = {
 
       // Validar que el usuario exista y tenga rol 'medico'
       const usuario = await Usuario.findById(usuarioId);
-      if (!usuario || usuario.rol !== 'medico') {
+      if (!usuario || usuario.rol !== "medico") {
         return res.status(400).json({ error: "Usuario no válido para médico" });
       }
 
       // Crear médico vinculado al usuario
-      const nuevoMedico = new Medico({ 
-        usuario: usuarioId, 
-        especialidad, 
-        sala 
+      const nuevoMedico = new Medico({
+        usuario: usuarioId,
+        especialidad,
+        sala,
       });
       await nuevoMedico.save();
 
-      res.status(201).json(nuevoMedico);
+      // Hacer populate para devolver los datos completos
+      const medicoCompleto = await Medico.findById(nuevoMedico._id)
+        .populate("usuario", "nombre apellido ci rol")
+        .populate("especialidad", "nombre descripcion")
+        .populate("sala", "numero nombre");
+
+      res.status(201).json(medicoCompleto);
     } catch (error) {
       res.status(500).json({ error: "Error al crear médico" });
     }
@@ -52,35 +64,51 @@ module.exports = {
   // Actualizar un médico
   updateOneMedicoById: (req, res) => {
     Medico.findByIdAndUpdate(req.params.id, req.body, { new: true })
-      .then(medico => res.json(medico))
-      .catch(err => res.status(400).json('Error: ' + err));
+      .populate("usuario", "nombre apellido ci rol")
+      .populate("especialidad", "nombre descripcion")
+      .populate("sala", "numero nombre")
+      .then((medico) => res.json(medico))
+      .catch((err) => res.status(400).json("Error: " + err));
   },
   getMedicoByUsuarioId: async (req, res) => {
     try {
-      const medico = await Medico.findOne({ usuario: req.params.id });
-      if (!medico) return res.status(404).json({ error: "Médico no encontrado" });
+      const medico = await Medico.findOne({ usuario: req.params.id })
+        .populate("usuario", "nombre apellido ci rol")
+        .populate("especialidad", "nombre")
+        .populate("sala", "numero nombre");
+
+      if (!medico) {
+        return res.status(404).json({ error: "Médico no encontrado" });
+      }
+
       res.json(medico);
     } catch (err) {
-      res.status(400).json("Error: " + err);
+      console.error("Error al buscar médico por usuario:", err);
+      res.status(500).json({ error: "Error interno del servidor" });
     }
   },
   actualizarSalaMedico: async (req, res) => {
     try {
       const { id } = req.params; // ID del médico (por ejemplo, user._id o el ID de medico)
       const { sala } = req.body; // La nueva sala que se envía en el body
-  
+
       if (!sala || sala.trim() === "") {
         return res.status(400).json({ error: "La sala es requerida" });
       }
-  
-      const medico = await Medico.findById(id);
+
+      const medico = await Medico.findByIdAndUpdate(
+        id,
+        { sala },
+        { new: true }
+      )
+        .populate("usuario", "nombre apellido ci rol")
+        .populate("especialidad", "nombre descripcion")
+        .populate("sala", "numero nombre");
+
       if (!medico) {
         return res.status(404).json({ error: "Médico no encontrado" });
       }
-  
-      medico.sala = sala;
-      await medico.save();
-  
+
       res.status(200).json(medico);
     } catch (error) {
       console.error("Error al actualizar sala del médico:", error);
@@ -90,19 +118,24 @@ module.exports = {
   // Eliminar un médico
   deleteOneMedicoById: (req, res) => {
     Medico.findByIdAndDelete(req.params.id)
-      .then(() => res.json('Médico eliminado.'))
-      .catch(err => res.status(400).json('Error: ' + err));
+      .then(() => res.json("Médico eliminado."))
+      .catch((err) => res.status(400).json("Error: " + err));
   },
   findByEspecialidad: (req, res) => {
     const especialidad = req.params.especialidad;
 
     Medico.find({ especialidad: especialidad })
-      .then(medicos => {
+      .populate("usuario", "nombre apellido ci rol")
+      .populate("especialidad", "nombre descripcion")
+      .populate("sala", "numero nombre")
+      .then((medicos) => {
         if (medicos.length === 0) {
-          return res.status(404).json('No se encontraron médicos con esa especialidad');
+          return res
+            .status(404)
+            .json("No se encontraron médicos con esa especialidad");
         }
         res.json(medicos);
       })
-      .catch(err => res.status(400).json('Error: ' + err));
-  }
+      .catch((err) => res.status(400).json("Error: " + err));
+  },
 };

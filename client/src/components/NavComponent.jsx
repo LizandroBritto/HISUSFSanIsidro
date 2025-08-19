@@ -118,6 +118,45 @@ const NavComponent = () => {
                   )}
                 </li>
                 <li>
+                  {user?.rol == "administrador" && (
+                    <Link
+                      to="/dashboard/gestionar-salas"
+                      className="group flex items-center hover:text-primary-600 dark:hover:text-primary-500"
+                    >
+                      <svg
+                        className="me-2 h-3 w-3 text-gray-400 group-hover:text-primary-600 dark:text-gray-500 dark:group-hover:text-primary-500"
+                        aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M19 4h-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2H1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h1v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6h1a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1ZM4 16V4h12v12H4Z" />
+                      </svg>
+                      Gestionar Salas
+                    </Link>
+                  )}
+                </li>
+                <li>
+                  {user?.rol == "administrador" && (
+                    <Link
+                      to="/dashboard/gestionar-especialidades"
+                      className="group flex items-center hover:text-primary-600 dark:hover:text-primary-500"
+                    >
+                      <svg
+                        className="me-2 h-3 w-3 text-gray-400 group-hover:text-primary-600 dark:text-gray-500 dark:group-hover:text-primary-500"
+                        aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M10 0C4.486 0 0 4.486 0 10s4.486 10 10 10 10-4.486 10-10S15.514 0 10 0Zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8Z" />
+                        <path d="M13 7h-2.5l-.5-1H7v2h2.5l.5 1H13a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2.5l-.5 1H7v2h2.5l.5-1H13a3 3 0 0 0 3-3v-2a3 3 0 0 0-3-3Z" />
+                      </svg>
+                      Gestionar Especialidades
+                    </Link>
+                  )}
+                </li>
+                <li>
                   {user?.rol == "enfermero" && (
                     <Link
                       to="/dashboard/crearPaciente"

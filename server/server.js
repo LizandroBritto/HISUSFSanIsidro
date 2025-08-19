@@ -47,6 +47,12 @@ app.use("/api/usuarios", usuariosRouter);
 const logsRouter = require("./routes/logActividad.route");
 app.use("/api/logs", logsRouter);
 
+const salasRouter = require("./routes/sala.route");
+app.use("/api/salas", salasRouter);
+
+const especialidadesRouter = require("./routes/especialidad.route");
+app.use("/api/especialidades", especialidadesRouter);
+
 // Iniciar servidor
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);

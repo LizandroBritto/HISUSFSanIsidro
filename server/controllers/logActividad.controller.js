@@ -5,11 +5,13 @@ const xlsx = require("xlsx");
 // Función helper para crear logs
 const crearLog = async (datos) => {
   try {
+    console.log("💾 crearLog: Guardando log en BD:", datos);
     const nuevoLog = new LogActividad(datos);
     await nuevoLog.save();
+    console.log("✅ Log guardado con ID:", nuevoLog._id);
     return nuevoLog;
   } catch (error) {
-    console.error("Error al crear log de actividad:", error);
+    console.error("❌ Error al crear log de actividad:", error);
     // No lanzamos error para que no interrumpa la operación principal
   }
 };
@@ -207,14 +209,8 @@ const obtenerLogPorId = async (req, res) => {
 // Descargar logs en Excel
 const descargarLogsExcel = async (req, res) => {
   try {
-    const {
-      accion,
-      entidad,
-      usuario,
-      fechaInicio,
-      fechaFin,
-      exitoso,
-    } = req.query;
+    const { accion, entidad, usuario, fechaInicio, fechaFin, exitoso } =
+      req.query;
 
     // Construir filtros (mismo código que obtenerLogs)
     const filtros = {};
@@ -222,7 +218,8 @@ const descargarLogsExcel = async (req, res) => {
     if (accion) filtros.accion = accion;
     if (entidad) filtros.entidad = entidad;
     if (usuario) filtros.usuario = usuario;
-    if (exitoso !== undefined && exitoso !== "") filtros.exitoso = exitoso === "true";
+    if (exitoso !== undefined && exitoso !== "")
+      filtros.exitoso = exitoso === "true";
 
     // Filtros de fecha
     if (fechaInicio || fechaFin) {
@@ -249,7 +246,7 @@ const descargarLogsExcel = async (req, res) => {
     // Mapear acciones a textos amigables
     const accionesTexto = {
       CREAR_USUARIO: "Crear Usuario",
-      EDITAR_USUARIO: "Editar Usuario", 
+      EDITAR_USUARIO: "Editar Usuario",
       ELIMINAR_USUARIO: "Eliminar Usuario",
       LOGIN: "Iniciar Sesión",
       LOGOUT: "Cerrar Sesión",
@@ -259,28 +256,36 @@ const descargarLogsExcel = async (req, res) => {
       EDITAR_CITA: "Editar Cita",
       CANCELAR_CITA: "Cancelar Cita",
       CONFIRMAR_CITA: "Confirmar Cita",
-      COMPLETAR_CITA: "Completar Cita"
+      COMPLETAR_CITA: "Completar Cita",
+      CREAR_SALA: "Crear Sala",
+      EDITAR_SALA: "Editar Sala",
+      ELIMINAR_SALA: "Eliminar Sala",
+      CREAR_ESPECIALIDAD: "Crear Especialidad",
+      EDITAR_ESPECIALIDAD: "Editar Especialidad",
+      ELIMINAR_ESPECIALIDAD: "Eliminar Especialidad",
     };
 
     // Preparar datos para el Excel
-    const datosExcel = logs.map(log => ({
-      'Fecha/Hora': log.createdAt ? new Date(log.createdAt).toLocaleString('es-ES', {
-        year: 'numeric',
-        month: '2-digit', 
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      }) : '',
-      'Usuario': log.usuarioNombre || 'N/A',
-      'Rol': log.usuarioRol || 'N/A',
-      'Acción': accionesTexto[log.accion] || log.accion,
-      'Entidad': log.entidad || 'N/A',
-      'Descripción': log.descripcion || 'N/A',
-      'Estado': log.exitoso ? 'Exitoso' : 'Error',
-      'IP': log.ip || 'N/A',
-      'Navegador': log.userAgent || 'N/A',
-      'Mensaje de Error': log.errorMessage || ''
+    const datosExcel = logs.map((log) => ({
+      "Fecha/Hora": log.createdAt
+        ? new Date(log.createdAt).toLocaleString("es-ES", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })
+        : "",
+      Usuario: log.usuarioNombre || "N/A",
+      Rol: log.usuarioRol || "N/A",
+      Acción: accionesTexto[log.accion] || log.accion,
+      Entidad: log.entidad || "N/A",
+      Descripción: log.descripcion || "N/A",
+      Estado: log.exitoso ? "Exitoso" : "Error",
+      IP: log.ip || "N/A",
+      Navegador: log.userAgent || "N/A",
+      "Mensaje de Error": log.errorMessage || "",
     }));
 
     // Crear libro de trabajo
@@ -290,7 +295,7 @@ const descargarLogsExcel = async (req, res) => {
     // Configurar ancho de columnas
     const columnWidths = [
       { wch: 20 }, // Fecha/Hora
-      { wch: 25 }, // Usuario  
+      { wch: 25 }, // Usuario
       { wch: 15 }, // Rol
       { wch: 20 }, // Acción
       { wch: 15 }, // Entidad
@@ -298,27 +303,35 @@ const descargarLogsExcel = async (req, res) => {
       { wch: 10 }, // Estado
       { wch: 15 }, // IP
       { wch: 30 }, // Navegador
-      { wch: 30 }  // Mensaje de Error
+      { wch: 30 }, // Mensaje de Error
     ];
-    worksheet['!cols'] = columnWidths;
+    worksheet["!cols"] = columnWidths;
 
     // Agregar hoja al libro
     xlsx.utils.book_append_sheet(workbook, worksheet, "Registro de Actividad");
 
     // Generar buffer del Excel
-    const excelBuffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const excelBuffer = xlsx.write(workbook, {
+      type: "buffer",
+      bookType: "xlsx",
+    });
 
     // Configurar headers para descarga
     const fechaActual = new Date().toISOString().slice(0, 10);
     const nombreArchivo = `registro-actividad-${fechaActual}.xlsx`;
 
-    res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Length', excelBuffer.length);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${nombreArchivo}"`
+    );
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Length", excelBuffer.length);
 
     // Enviar archivo
     res.send(excelBuffer);
-
   } catch (error) {
     console.error("Error al generar Excel:", error);
     res.status(500).json({

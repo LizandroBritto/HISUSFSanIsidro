@@ -7,12 +7,14 @@ const medicoSchema = new mongoose.Schema({
     required: true, // Asegúrate de vincular siempre un usuario
   },
   especialidad: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Especialidad',
     required: [true, 'La especialidad del médico es requerida'],
     index: true // Agrega un índice al campo 'especialidad'
   },
   sala: {
-    type: Number,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Sala',
     required: [true, 'La sala del médico es requerida'],
   },
 });

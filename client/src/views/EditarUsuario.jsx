@@ -10,6 +10,8 @@ const EditarUsuario = () => {
   const navigate = useNavigate();
   const [usuario, setUsuario] = useState(null);
   const [relatedData, setRelatedData] = useState({});
+  const [especialidades, setEspecialidades] = useState([]);
+  const [salas, setSalas] = useState([]);
 
   const validationSchema = Yup.object().shape({
     nombre: Yup.string()
@@ -56,6 +58,22 @@ const EditarUsuario = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
+
+        // Obtener especialidades y salas para los selects
+        const [especialidadesResponse, salasResponse] = await Promise.all([
+          axios.get("http://localhost:8000/api/especialidades", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get("http://localhost:8000/api/salas", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        console.log("Especialidades recibidas:", especialidadesResponse.data);
+        console.log("Salas recibidas:", salasResponse.data);
+
+        setEspecialidades(especialidadesResponse.data || []);
+        setSalas(salasResponse.data || []);
 
         // Obtener datos específicos del rol
         let roleData = {};
@@ -151,8 +169,8 @@ const EditarUsuario = () => {
         contrasena: "",
         confirmcontrasena: "",
         rol: usuario.rol,
-        especialidad: relatedData.especialidad || "",
-        sala: relatedData.sala || "",
+        especialidad: relatedData.especialidad?._id || relatedData.especialidad || "",
+        sala: relatedData.sala?._id || relatedData.sala || "",
         area: relatedData.area || "",
       }}
       validationSchema={validationSchema}
@@ -230,10 +248,17 @@ const EditarUsuario = () => {
                 <div>
                   <label className="block mb-1">Especialidad</label>
                   <Field
-                    type="text"
+                    as="select"
                     name="especialidad"
                     className="w-full p-2 border rounded"
-                  />
+                  >
+                    <option value="">Seleccionar especialidad</option>
+                    {Array.isArray(especialidades) && especialidades.map((esp) => (
+                      <option key={esp._id} value={esp._id}>
+                        {esp.nombre}
+                      </option>
+                    ))}
+                  </Field>
                   <ErrorMessage
                     name="especialidad"
                     component="div"
@@ -243,10 +268,17 @@ const EditarUsuario = () => {
                 <div>
                   <label className="block mb-1">Sala</label>
                   <Field
-                    type="text"
+                    as="select"
                     name="sala"
                     className="w-full p-2 border rounded"
-                  />
+                  >
+                    <option value="">Seleccionar sala</option>
+                    {Array.isArray(salas) && salas.map((sala) => (
+                      <option key={sala._id} value={sala._id}>
+                        {sala.nombre}
+                      </option>
+                    ))}
+                  </Field>
                   <ErrorMessage
                     name="sala"
                     component="div"

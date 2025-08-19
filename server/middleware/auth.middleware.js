@@ -40,6 +40,18 @@ const allowedRoles = {
     put: ["administrador"],
     delete: ["administrador"],
   },
+  "/api/salas": {
+    get: ["administrador", "medico", "enfermero"], // Todos pueden ver salas
+    post: ["administrador"], // Solo admin puede crear
+    put: ["administrador"], // Solo admin puede editar
+    delete: ["administrador"], // Solo admin puede eliminar
+  },
+  "/api/especialidades": {
+    get: ["administrador", "medico", "enfermero"], // Todos pueden ver especialidades
+    post: ["administrador"], // Solo admin puede crear
+    put: ["administrador"], // Solo admin puede editar
+    delete: ["administrador"], // Solo admin puede eliminar
+  },
 };
 
 const authenticate = async (req, res, next) => {

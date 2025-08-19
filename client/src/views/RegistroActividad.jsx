@@ -10,7 +10,14 @@ import {
   Alert,
   Modal,
 } from "flowbite-react";
-import { HiFilter, HiEye, HiCalendar, HiUser, HiCog, HiDownload } from "react-icons/hi";
+import {
+  HiFilter,
+  HiEye,
+  HiCalendar,
+  HiUser,
+  HiCog,
+  HiDownload,
+} from "react-icons/hi";
 import axios from "axios";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -50,6 +57,24 @@ const RegistroActividad = () => {
     CANCELAR_CITA: { color: "failure", text: "Cancelar Cita", icon: "❌" },
     CONFIRMAR_CITA: { color: "success", text: "Confirmar Cita", icon: "✅" },
     COMPLETAR_CITA: { color: "purple", text: "Completar Cita", icon: "✔️" },
+    CREAR_SALA: { color: "success", text: "Crear Sala", icon: "🏢" },
+    EDITAR_SALA: { color: "info", text: "Editar Sala", icon: "✏️" },
+    ELIMINAR_SALA: { color: "failure", text: "Eliminar Sala", icon: "🗑️" },
+    CREAR_ESPECIALIDAD: {
+      color: "success",
+      text: "Crear Especialidad",
+      icon: "🩺",
+    },
+    EDITAR_ESPECIALIDAD: {
+      color: "info",
+      text: "Editar Especialidad",
+      icon: "✏️",
+    },
+    ELIMINAR_ESPECIALIDAD: {
+      color: "failure",
+      text: "Eliminar Especialidad",
+      icon: "🗑️",
+    },
   };
 
   const entidadesConfig = {
@@ -59,6 +84,8 @@ const RegistroActividad = () => {
     Medico: { color: "purple", icon: "👨‍⚕️" },
     Enfermero: { color: "pink", icon: "👩‍⚕️" },
     Sistema: { color: "gray", icon: "⚙️" },
+    Sala: { color: "indigo", icon: "🏢" },
+    Especialidad: { color: "teal", icon: "🩺" },
   };
 
   // Cargar logs
@@ -156,31 +183,30 @@ const RegistroActividad = () => {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-          responseType: 'blob', // Importante para descargar archivos
+          responseType: "blob", // Importante para descargar archivos
         }
       );
 
       // Crear un enlace de descarga
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      
+
       // Obtener el nombre del archivo de la respuesta (si está disponible)
-      const contentDisposition = response.headers['content-disposition'];
-      let fileName = 'registro-actividad.xlsx';
+      const contentDisposition = response.headers["content-disposition"];
+      let fileName = "registro-actividad.xlsx";
       if (contentDisposition) {
         const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
         if (fileNameMatch) {
           fileName = fileNameMatch[1];
         }
       }
-      
-      link.setAttribute('download', fileName);
+
+      link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-
     } catch (error) {
       console.error("Error al descargar Excel:", error);
       setError("Error al descargar el archivo Excel");
@@ -351,7 +377,7 @@ const RegistroActividad = () => {
             <Button onClick={limpiarFiltros} color="gray">
               Limpiar Filtros
             </Button>
-            
+
             <Button onClick={descargarExcel} color="green" disabled={loading}>
               <HiDownload className="w-4 h-4 mr-2" />
               Descargar Excel

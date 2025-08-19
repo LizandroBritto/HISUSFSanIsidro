@@ -2,15 +2,60 @@ import * as Yup from "yup";
 import axios from "axios";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import "react-toastify/dist/ReactToastify.css";
-import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
-import { useContext } from "react";
+import { useContext, useState, useEffect } from "react";
 import Swal from "sweetalert2";
 
 const CrearUsuario = () => {
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
+
+  // Estado para especialidades y salas
+  const [especialidades, setEspecialidades] = useState([]);
+  const [salas, setSalas] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Cargar especialidades y salas activas
+  useEffect(() => {
+    const cargarDatos = async () => {
+      setLoading(true);
+      try {
+        // Cargar especialidades activas
+        const especialidadesResponse = await axios.get(
+          "http://localhost:8000/api/especialidades?activo=true",
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        // Cargar salas activas
+        const salasResponse = await axios.get(
+          "http://localhost:8000/api/salas?activo=true",
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (especialidadesResponse.data.success) {
+          setEspecialidades(especialidadesResponse.data.data);
+        }
+
+        if (salasResponse.data.success) {
+          setSalas(salasResponse.data.data);
+        }
+      } catch (error) {
+        console.error("Error cargando especialidades y salas:", error);
+      }
+      setLoading(false);
+    };
+
+    cargarDatos();
+  }, []);
 
   const validationSchema = Yup.object().shape({
     nombre: Yup.string()
@@ -168,10 +213,27 @@ const CrearUsuario = () => {
                 <div>
                   <label className="block mb-1">Especialidad</label>
                   <Field
-                    type="text"
+                    as="select"
                     name="especialidad"
                     className="w-full p-2 border rounded"
-                  />
+                    disabled={loading}
+                  >
+                    <option value="">
+                      {loading
+                        ? "Cargando especialidades..."
+                        : "Seleccionar especialidad"}
+                    </option>
+                    {especialidades.map((esp) => (
+                      <option key={esp._id} value={esp._id}>
+                        {esp.nombre}
+                      </option>
+                    ))}
+                    {!loading && especialidades.length === 0 && (
+                      <option value="" disabled>
+                        No hay especialidades activas
+                      </option>
+                    )}
+                  </Field>
                   <ErrorMessage
                     name="especialidad"
                     component="div"
@@ -181,10 +243,25 @@ const CrearUsuario = () => {
                 <div>
                   <label className="block mb-1">Sala</label>
                   <Field
-                    type="text"
+                    as="select"
                     name="sala"
                     className="w-full p-2 border rounded"
-                  />
+                    disabled={loading}
+                  >
+                    <option value="">
+                      {loading ? "Cargando salas..." : "Seleccionar sala"}
+                    </option>
+                    {salas.map((sala) => (
+                      <option key={sala._id} value={sala._id}>
+                        Sala {sala.numero} - {sala.nombre}
+                      </option>
+                    ))}
+                    {!loading && salas.length === 0 && (
+                      <option value="" disabled>
+                        No hay salas activas
+                      </option>
+                    )}
+                  </Field>
                   <ErrorMessage
                     name="sala"
                     component="div"

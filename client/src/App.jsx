@@ -15,6 +15,8 @@ import PacienteCitas from "./views/PacienteCitas";
 import EditarUsuario from "./views/EditarUsuario";
 import Register from "./views/Register";
 import RegistroActividad from "./views/RegistroActividad";
+import GestionarSalas from "./views/GestionarSalas";
+import GestionarEspecialidades from "./views/GestionarEspecialidades";
 
 function App() {
   return (
@@ -33,6 +35,22 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["administrador"]}>
               <RegistroActividad />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/gestionar-salas"
+          element={
+            <ProtectedRoute allowedRoles={["administrador"]}>
+              <GestionarSalas />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/gestionar-especialidades"
+          element={
+            <ProtectedRoute allowedRoles={["administrador"]}>
+              <GestionarEspecialidades />
             </ProtectedRoute>
           }
         />

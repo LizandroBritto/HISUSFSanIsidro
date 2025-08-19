@@ -7,12 +7,17 @@ const UsuarioRouter = express.Router();
 // Rutas protegidas para usuarios
 UsuarioRouter.get("/", authenticate, UsuarioController.getAllUsuarios);
 UsuarioRouter.get("/:id", authenticate, UsuarioController.getOneUsuario);
-UsuarioRouter.post("/new", authenticate, UsuarioController.createUsuario); 
+UsuarioRouter.post("/new", authenticate, UsuarioController.createUsuario);
 UsuarioRouter.post("/register", UsuarioController.register);
 UsuarioRouter.put("/:id", authenticate, UsuarioController.updateOneUsuarioById);
-UsuarioRouter.delete("/:id", authenticate, UsuarioController.deleteOneUsuarioById);
+UsuarioRouter.delete(
+  "/:id",
+  authenticate,
+  UsuarioController.deleteOneUsuarioById
+);
 
 // Rutas públicas
 UsuarioRouter.post("/login", UsuarioController.login);
+UsuarioRouter.post("/logout", authenticate, UsuarioController.logout);
 
 module.exports = UsuarioRouter;

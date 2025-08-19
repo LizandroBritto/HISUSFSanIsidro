@@ -12,15 +12,21 @@ const EditarUsuario = () => {
   const [relatedData, setRelatedData] = useState({});
 
   const validationSchema = Yup.object().shape({
-    nombre: Yup.string().min(3, "Mínimo 3 caracteres").required("Nombre es requerido"),
-    apellido: Yup.string().min(3, "Mínimo 3 caracteres").required("Apellido es requerido"),
+    nombre: Yup.string()
+      .min(3, "Mínimo 3 caracteres")
+      .required("Nombre es requerido"),
+    apellido: Yup.string()
+      .min(3, "Mínimo 3 caracteres")
+      .required("Apellido es requerido"),
     ci: Yup.string().min(7, "Mínimo 7 caracteres").required("CI es requerido"),
     contrasena: Yup.string().min(6, "Mínimo 6 caracteres"),
-    confirmcontrasena: Yup.string()
-      .oneOf([Yup.ref("contrasena"), null], "Las contraseñas no coinciden"),
+    confirmcontrasena: Yup.string().oneOf(
+      [Yup.ref("contrasena"), null],
+      "Las contraseñas no coinciden"
+    ),
     rol: Yup.string()
       .required("Rol es requerido")
-      .oneOf(["administrador", "medico", "enfermero", "personal de apoyo"], "Rol inválido"),
+      .oneOf(["administrador", "medico", "enfermero"], "Rol inválido"),
     especialidad: Yup.string().when("rol", {
       is: "medico",
       then: (schema) => schema.required("Especialidad es requerida"),
@@ -42,23 +48,32 @@ const EditarUsuario = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
-        
+
         // Obtener usuario principal
-        const userResponse = await axios.get(`http://localhost:8000/api/usuarios/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const userResponse = await axios.get(
+          `http://localhost:8000/api/usuarios/${id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
 
         // Obtener datos específicos del rol
         let roleData = {};
-        if (userResponse.data.rol === 'medico') {
-          const medicoResponse = await axios.get(`http://localhost:8000/api/medicos/usuario/${id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+        if (userResponse.data.rol === "medico") {
+          const medicoResponse = await axios.get(
+            `http://localhost:8000/api/medicos/usuario/${id}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
           roleData = medicoResponse.data;
-        } else if (userResponse.data.rol === 'enfermero') {
-          const enfermeroResponse = await axios.get(`http://localhost:8000/api/enfermeros/usuario/${id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+        } else if (userResponse.data.rol === "enfermero") {
+          const enfermeroResponse = await axios.get(
+            `http://localhost:8000/api/enfermeros/usuario/${id}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
           roleData = enfermeroResponse.data;
         }
 
@@ -87,28 +102,40 @@ const EditarUsuario = () => {
 
       // Actualizar usuario principal
       await axios.put(`http://localhost:8000/api/usuarios/${id}`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       // Actualizar datos específicos del rol
-      if (values.rol === 'medico') {
-        await axios.put(`http://localhost:8000/api/medicos/${relatedData._id}`, {
-          especialidad: values.especialidad,
-          sala: values.sala
-        }, { headers: { Authorization: `Bearer ${token}` } });
-      } else if (values.rol === 'enfermero') {
-        await axios.put(`http://localhost:8000/api/enfermeros/${relatedData._id}`, {
-          area: values.area
-        }, { headers: { Authorization: `Bearer ${token}` } });
+      if (values.rol === "medico") {
+        await axios.put(
+          `http://localhost:8000/api/medicos/${relatedData._id}`,
+          {
+            especialidad: values.especialidad,
+            sala: values.sala,
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else if (values.rol === "enfermero") {
+        await axios.put(
+          `http://localhost:8000/api/enfermeros/${relatedData._id}`,
+          {
+            area: values.area,
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
       }
 
-      Swal.fire("¡Actualizado!", "Usuario actualizado correctamente", "success");
+      Swal.fire(
+        "¡Actualizado!",
+        "Usuario actualizado correctamente",
+        "success"
+      );
       navigate("/dashboard");
     } catch (error) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: error.response?.data?.error || "Error al actualizar el usuario"
+        text: error.response?.data?.error || "Error al actualizar el usuario",
       });
     }
   };
@@ -126,7 +153,7 @@ const EditarUsuario = () => {
         rol: usuario.rol,
         especialidad: relatedData.especialidad || "",
         sala: relatedData.sala || "",
-        area: relatedData.area || ""
+        area: relatedData.area || "",
       }}
       validationSchema={validationSchema}
       onSubmit={handleSubmit}
@@ -135,49 +162,96 @@ const EditarUsuario = () => {
       {({ values }) => (
         <Form className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
           <h2 className="text-2xl font-bold mb-4">Editar Usuario</h2>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block mb-1">Nombre</label>
-              <Field type="text" name="nombre" className="w-full p-2 border rounded" />
-              <ErrorMessage name="nombre" component="div" className="text-red-500 text-sm" />
+              <Field
+                type="text"
+                name="nombre"
+                className="w-full p-2 border rounded"
+              />
+              <ErrorMessage
+                name="nombre"
+                component="div"
+                className="text-red-500 text-sm"
+              />
             </div>
 
             <div>
               <label className="block mb-1">Apellido</label>
-              <Field type="text" name="apellido" className="w-full p-2 border rounded" />
-              <ErrorMessage name="apellido" component="div" className="text-red-500 text-sm" />
+              <Field
+                type="text"
+                name="apellido"
+                className="w-full p-2 border rounded"
+              />
+              <ErrorMessage
+                name="apellido"
+                component="div"
+                className="text-red-500 text-sm"
+              />
             </div>
 
             <div>
               <label className="block mb-1">CI</label>
-              <Field type="number" name="ci" className="w-full p-2 border rounded" />
-              <ErrorMessage name="ci" component="div" className="text-red-500 text-sm" />
+              <Field
+                type="number"
+                name="ci"
+                className="w-full p-2 border rounded"
+              />
+              <ErrorMessage
+                name="ci"
+                component="div"
+                className="text-red-500 text-sm"
+              />
             </div>
 
             <div>
               <label className="block mb-1">Rol</label>
-              <Field as="select" name="rol" className="w-full p-2 border rounded">
+              <Field
+                as="select"
+                name="rol"
+                className="w-full p-2 border rounded"
+              >
                 <option value="">Seleccionar rol</option>
                 <option value="administrador">Administrador</option>
                 <option value="medico">Médico</option>
                 <option value="enfermero">Enfermero</option>
-                <option value="personal de apoyo">Personal de Apoyo</option>
               </Field>
-              <ErrorMessage name="rol" component="div" className="text-red-500 text-sm" />
+              <ErrorMessage
+                name="rol"
+                component="div"
+                className="text-red-500 text-sm"
+              />
             </div>
 
             {values.rol === "medico" && (
               <>
                 <div>
                   <label className="block mb-1">Especialidad</label>
-                  <Field type="text" name="especialidad" className="w-full p-2 border rounded" />
-                  <ErrorMessage name="especialidad" component="div" className="text-red-500 text-sm" />
+                  <Field
+                    type="text"
+                    name="especialidad"
+                    className="w-full p-2 border rounded"
+                  />
+                  <ErrorMessage
+                    name="especialidad"
+                    component="div"
+                    className="text-red-500 text-sm"
+                  />
                 </div>
                 <div>
                   <label className="block mb-1">Sala</label>
-                  <Field type="text" name="sala" className="w-full p-2 border rounded" />
-                  <ErrorMessage name="sala" component="div" className="text-red-500 text-sm" />
+                  <Field
+                    type="text"
+                    name="sala"
+                    className="w-full p-2 border rounded"
+                  />
+                  <ErrorMessage
+                    name="sala"
+                    component="div"
+                    className="text-red-500 text-sm"
+                  />
                 </div>
               </>
             )}
@@ -185,24 +259,53 @@ const EditarUsuario = () => {
             {values.rol === "enfermero" && (
               <div>
                 <label className="block mb-1">Área</label>
-                <Field type="text" name="area" className="w-full p-2 border rounded" />
-                <ErrorMessage name="area" component="div" className="text-red-500 text-sm" />
+                <Field
+                  type="text"
+                  name="area"
+                  className="w-full p-2 border rounded"
+                />
+                <ErrorMessage
+                  name="area"
+                  component="div"
+                  className="text-red-500 text-sm"
+                />
               </div>
             )}
 
             <div>
-              <label className="block mb-1">Nueva Contraseña (dejar en blanco para no cambiar)</label>
-              <Field type="password" name="contrasena" className="w-full p-2 border rounded" />
-              <ErrorMessage name="contrasena" component="div" className="text-red-500 text-sm" />
+              <label className="block mb-1">
+                Nueva Contraseña (dejar en blanco para no cambiar)
+              </label>
+              <Field
+                type="password"
+                name="contrasena"
+                className="w-full p-2 border rounded"
+              />
+              <ErrorMessage
+                name="contrasena"
+                component="div"
+                className="text-red-500 text-sm"
+              />
             </div>
 
             <div>
               <label className="block mb-1">Confirmar Nueva Contraseña</label>
-              <Field type="password" name="confirmcontrasena" className="w-full p-2 border rounded" />
-              <ErrorMessage name="confirmcontrasena" component="div" className="text-red-500 text-sm" />
+              <Field
+                type="password"
+                name="confirmcontrasena"
+                className="w-full p-2 border rounded"
+              />
+              <ErrorMessage
+                name="confirmcontrasena"
+                component="div"
+                className="text-red-500 text-sm"
+              />
             </div>
 
-            <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+            <button
+              type="submit"
+              className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+            >
               Actualizar Usuario
             </button>
           </div>

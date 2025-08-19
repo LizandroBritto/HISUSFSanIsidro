@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const Medico = require("../models/medico.model"); // Importar modelo Medico
 const Enfermero = require("../models/enfermero.model"); // Importar modelo Enfermero si existe
+const { crearLogManual } = require("../middleware/logging.middleware");
 module.exports = {
   register: (req, res) => {
     const user = new Usuario(req.body);
@@ -69,9 +70,60 @@ module.exports = {
         });
 
       console.log(`Login exitoso para usuario ${ci}`);
+
+      // Crear log de login exitoso - simulamos el req.user para el log
+      const fakeReq = {
+        ...req,
+        user: {
+          _id: user._id,
+          nombre: user.nombre,
+          apellido: user.apellido,
+          rol: user.rol,
+        },
+      };
+
+      await crearLogManual(
+        fakeReq,
+        "LOGIN",
+        "Usuario",
+        `Inicio de sesión exitoso - ${user.nombre} ${user.apellido} (${user.ci})`,
+        {
+          entidadId: user._id,
+          datosDespues: {
+            ci: user.ci,
+            rol: user.rol,
+            fechaLogin: new Date(),
+          },
+        }
+      );
     } catch (error) {
       console.error("Error en proceso de login:", error);
       res.status(500).json({ msg: "Error interno del servidor" });
+    }
+  },
+
+  logout: async (req, res) => {
+    try {
+      // Crear log de logout
+      await crearLogManual(
+        req,
+        "LOGOUT",
+        "Usuario",
+        `Cierre de sesión - ${req.user.nombre} ${req.user.apellido} (${req.user.ci})`,
+        {
+          entidadId: req.user._id,
+          datosDespues: {
+            fechaLogout: new Date(),
+          },
+        }
+      );
+
+      // Limpiar cookie
+      res.clearCookie("usertoken");
+      res.json({ msg: "Logout exitoso" });
+    } catch (error) {
+      console.error("Error en logout:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
     }
   },
 
@@ -83,8 +135,8 @@ module.exports = {
           from: "medicos", // Nombre de la colección en MongoDB
           localField: "_id",
           foreignField: "usuario",
-          as: "medicoInfo"
-        }
+          as: "medicoInfo",
+        },
       },
       {
         $project: {
@@ -92,12 +144,12 @@ module.exports = {
           apellido: 1,
           ci: 1,
           rol: 1,
-          especialidad: { $arrayElemAt: ["$medicoInfo.especialidad", 0] }
-        }
-      }
+          especialidad: { $arrayElemAt: ["$medicoInfo.especialidad", 0] },
+        },
+      },
     ])
-    .then(usuarios => res.json(usuarios))
-    .catch(err => res.status(400).json("Error: " + err));
+      .then((usuarios) => res.json(usuarios))
+      .catch((err) => res.status(400).json("Error: " + err));
   },
 
   // Obtener un usuario por ID
@@ -164,8 +216,28 @@ module.exports = {
           usuario: nuevoUsuario._id,
           area: otrosCampos.area,
         });
-        await nuevoEnfermero.save(); // 
+        await nuevoEnfermero.save(); //
       }
+
+      // Crear log de creación de usuario
+      await crearLogManual(
+        req,
+        "CREAR_USUARIO",
+        "Usuario",
+        `Nuevo usuario creado - ${nombre} ${apellido} (${ci}) - Rol: ${rol}`,
+        {
+          entidadId: nuevoUsuario._id,
+          datosDespues: {
+            nombre,
+            apellido,
+            ci,
+            rol,
+            especialidad: otrosCampos.especialidad,
+            sala: otrosCampos.sala,
+            area: otrosCampos.area,
+          },
+        }
+      );
 
       res.status(201).json({
         msg: "Usuario creado exitosamente",
@@ -177,10 +249,46 @@ module.exports = {
     }
   },
   // Actualizar un usuario
-  updateOneUsuarioById: (req, res) => {
-    Usuario.findByIdAndUpdate(req.params.id, req.body, { new: true })
-      .then((usuario) => res.json(usuario))
-      .catch((err) => res.status(400).json("Error: " + err));
+  updateOneUsuarioById: async (req, res) => {
+    try {
+      // Obtener datos anteriores para el log
+      const usuarioAnterior = await Usuario.findById(req.params.id);
+      if (!usuarioAnterior) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      }
+
+      const usuarioActualizado = await Usuario.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true }
+      );
+
+      // Crear log de actualización
+      await crearLogManual(
+        req,
+        "EDITAR_USUARIO",
+        "Usuario",
+        `Usuario actualizado - ${usuarioActualizado.nombre} ${usuarioActualizado.apellido} (${usuarioActualizado.ci})`,
+        {
+          entidadId: req.params.id,
+          datosAntes: {
+            nombre: usuarioAnterior.nombre,
+            apellido: usuarioAnterior.apellido,
+            rol: usuarioAnterior.rol,
+          },
+          datosDespues: {
+            nombre: usuarioActualizado.nombre,
+            apellido: usuarioActualizado.apellido,
+            rol: usuarioActualizado.rol,
+          },
+        }
+      );
+
+      res.json(usuarioActualizado);
+    } catch (error) {
+      console.error("Error al actualizar usuario:", error);
+      res.status(400).json({ error: error.message });
+    }
   },
 
   // Eliminar un usuario

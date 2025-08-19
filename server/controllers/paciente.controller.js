@@ -1,4 +1,5 @@
 const Paciente = require("../models/paciente.model");
+const { crearLogManual } = require("../middleware/logging.middleware");
 
 module.exports = {
   // Obtener todos los pacientes
@@ -31,6 +32,23 @@ module.exports = {
       const nuevoPaciente = new Paciente(req.body);
       await nuevoPaciente.save();
 
+      // Crear log de creación de paciente
+      await crearLogManual(
+        req,
+        "CREAR_PACIENTE",
+        "Paciente",
+        `Nuevo paciente registrado - ${nuevoPaciente.nombre} ${nuevoPaciente.apellido} (${nuevoPaciente.cedula})`,
+        {
+          entidadId: nuevoPaciente._id,
+          datosDespues: {
+            nombre: nuevoPaciente.nombre,
+            apellido: nuevoPaciente.apellido,
+            cedula: nuevoPaciente.cedula,
+            estadoPaciente: nuevoPaciente.estadoPaciente,
+          },
+        }
+      );
+
       res.status(201).json({ msg: "Paciente agregado exitosamente!" });
     } catch (error) {
       console.error("Error al crear paciente:", error);
@@ -52,27 +70,30 @@ module.exports = {
       if (!paciente) {
         return res.status(404).json({ message: "Paciente no encontrado" });
       }
-  
+
       // Alternar estado entre activo e inactivo
-      paciente.estadoPaciente = paciente.estadoPaciente === "Activo" ? "Inactivo" : "Activo";
+      paciente.estadoPaciente =
+        paciente.estadoPaciente === "Activo" ? "Inactivo" : "Activo";
       await paciente.save();
-  
+
       res.json(paciente);
     } catch (error) {
       res.status(500).json({ message: "Error al cambiar estado", error });
     }
   },
-  
-  
 
   updateOnePacienteById: async (req, res) => {
     try {
-      const pacienteActualizado = await Paciente.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  
+      const pacienteActualizado = await Paciente.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true }
+      );
+
       if (!pacienteActualizado) {
         return res.status(404).json({ error: "Paciente no encontrado" });
       }
-  
+
       res.json(pacienteActualizado);
     } catch (error) {
       console.error("Error al actualizar paciente:", error);
@@ -91,17 +112,17 @@ module.exports = {
   findByCedula: async (req, res) => {
     try {
       const { cedula } = req.params;
-  
+
       if (!/^\d+$/.test(cedula)) {
         return res.status(400).json({ error: "Formato de cédula inválido" });
       }
-  
+
       const paciente = await Paciente.findOne({ cedula });
-  
+
       if (!paciente) {
         return res.status(404).json({ error: "Paciente no encontrado" });
       }
-  
+
       res.json(paciente);
     } catch (error) {
       console.error("Error al buscar paciente por cédula:", error);

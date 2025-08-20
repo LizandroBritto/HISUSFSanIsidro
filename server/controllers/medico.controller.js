@@ -96,11 +96,7 @@ module.exports = {
         return res.status(400).json({ error: "La sala es requerida" });
       }
 
-      const medico = await Medico.findByIdAndUpdate(
-        id,
-        { sala },
-        { new: true }
-      )
+      const medico = await Medico.findByIdAndUpdate(id, { sala }, { new: true })
         .populate("usuario", "nombre apellido ci rol")
         .populate("especialidad", "nombre descripcion")
         .populate("sala", "numero nombre");

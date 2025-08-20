@@ -50,7 +50,9 @@ const NavComponent = () => {
       <NavbarCollapse>
         <NavbarLink href="/dashboard">Home</NavbarLink>
         {user?.rol != "medico" && (
-          <MegaMenuDropdown toggle={<>Opciones</>}>
+          <MegaMenuDropdown
+            toggle={<span className="text-white">Opciones</span>}
+          >
             <ul className="grid grid-cols-3">
               <div className="space-y-4 p-4">
                 {user?.rol === "medico" && (

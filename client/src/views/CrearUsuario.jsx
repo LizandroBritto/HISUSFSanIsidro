@@ -275,10 +275,15 @@ const CrearUsuario = () => {
               <div>
                 <label className="block mb-1">Área</label>
                 <Field
-                  type="text"
+                  as="select"
                   name="area"
                   className="w-full p-2 border rounded"
-                />
+                >
+                  <option value="">Seleccionar área</option>
+                  <option value="Administrativa">Administrativa</option>
+                  <option value="Recepcion">Recepción</option>
+                  <option value="Otra">Otra</option>
+                </Field>
                 <ErrorMessage
                   name="area"
                   component="div"

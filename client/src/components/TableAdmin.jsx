@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, Button } from "flowbite-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeadCell,
+  TableRow,
+  Button,
+} from "flowbite-react";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -11,22 +19,20 @@ const TableAdmin = () => {
 
   // Función para formatear el nombre completo
   const formatNombre = (user) => {
-    if (!user.nombre && !user.apellido) return 'Admin';
-    return `${user.nombre || ''} ${user.apellido || ''}`.trim();
+    if (!user.nombre && !user.apellido) return "Admin";
+    return `${user.nombre || ""} ${user.apellido || ""}`.trim();
   };
 
   // Función para obtener la especialidad
   const getEspecialidad = (user) => {
-    return user.rol === 'medico' 
-      ? user.especialidad || 'Sin especialidad' 
-      : 'No aplica';
+    return user.rol === "medico"
+      ? user.especialidad || "Sin especialidad"
+      : "No aplica";
   };
 
   // Función para obtener la sala
   const getSala = (user) => {
-    return user.rol === 'medico' 
-      ? user.sala || 'Sin sala' 
-      : 'No aplica';
+    return user.rol === "medico" ? user.sala || "Sin sala" : "No aplica";
   };
 
   useEffect(() => {
@@ -34,9 +40,9 @@ const TableAdmin = () => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get("http://localhost:8000/api/usuarios", {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
+
         // Agregar lógica adicional si necesitas obtener especialidades desde otra fuente
         setUsers(response.data);
       } catch (err) {
@@ -58,17 +64,17 @@ const TableAdmin = () => {
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
       confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar"
+      cancelButtonText: "Cancelar",
     });
 
     if (result.isConfirmed) {
       try {
         const token = localStorage.getItem("token");
         await axios.delete(`http://localhost:8000/api/usuarios/${userId}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
-        setUsers(users.filter(user => user._id !== userId));
+
+        setUsers(users.filter((user) => user._id !== userId));
         Swal.fire("¡Eliminado!", "El usuario ha sido eliminado.", "success");
       } catch (error) {
         Swal.fire("Error", "No se pudo eliminar el usuario", "error");
@@ -93,7 +99,10 @@ const TableAdmin = () => {
         </TableHead>
         <TableBody className="divide-y">
           {users.map((user) => (
-            <TableRow key={user._id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
+            <TableRow
+              key={user._id}
+              className="bg-white dark:border-gray-700 dark:bg-gray-800"
+            >
               <TableCell className="font-medium text-gray-900 dark:text-white">
                 {formatNombre(user)}
               </TableCell>
@@ -103,10 +112,17 @@ const TableAdmin = () => {
               <TableCell>{getSala(user)}</TableCell>
               <TableCell>
                 <div className="flex gap-2">
-                  <Button as={Link} to={`/editar-usuario/${user._id}`} color="blue">
+                  <Button
+                    as={Link}
+                    to={`/editar-usuario/${user._id}`}
+                    color="blue"
+                  >
                     Editar
                   </Button>
-                  <Button color="failure" onClick={() => handleDelete(user._id)}>
+                  <Button
+                    color="failure"
+                    onClick={() => handleDelete(user._id)}
+                  >
                     Eliminar
                   </Button>
                 </div>

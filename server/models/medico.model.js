@@ -1,24 +1,24 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const medicoSchema = new mongoose.Schema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Usuario',
+    ref: "Usuario",
     required: true, // Asegúrate de vincular siempre un usuario
   },
   especialidad: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Especialidad',
-    required: [true, 'La especialidad del médico es requerida'],
-    index: true // Agrega un índice al campo 'especialidad'
+    ref: "Especialidad",
+    required: [true, "La especialidad del médico es requerida"],
+    index: true, // Agrega un índice al campo 'especialidad'
   },
   sala: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Sala',
-    required: [true, 'La sala del médico es requerida'],
+    ref: "Sala",
+    required: [true, "La sala del médico es requerida"],
   },
 });
 
-const Medico = mongoose.model('Medico', medicoSchema);
+const Medico = mongoose.model("Medico", medicoSchema);
 
 module.exports = Medico;

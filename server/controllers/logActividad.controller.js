@@ -118,7 +118,7 @@ const obtenerEstadisticas = async (req, res) => {
       { $sort: { count: -1 } },
     ]);
 
-    // Estadísticas por usuario (top 10)
+    // Estadísticas por usuario (top 10) - Solo usuarios que aún existen
     const estadisticasPorUsuario = await LogActividad.aggregate([
       { $match: filtroFecha },
       {
@@ -130,6 +130,9 @@ const obtenerEstadisticas = async (req, res) => {
       { $sort: { count: -1 } },
       { $limit: 10 },
     ]);
+
+    // Usuarios activos reales en la BD (no en logs)
+    const usuariosActivosReales = await Usuario.countDocuments();
 
     // Actividad por día (últimos 7 días)
     const actividadPorDia = await LogActividad.aggregate([
@@ -158,6 +161,7 @@ const obtenerEstadisticas = async (req, res) => {
         estadisticasPorAccion,
         estadisticasPorEntidad,
         estadisticasPorUsuario,
+        usuariosActivosReales, // Nueva estadística con usuarios reales
         actividadPorDia,
         periodo: {
           inicio: fechaInicioPorDefecto,

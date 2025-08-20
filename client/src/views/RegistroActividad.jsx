@@ -250,7 +250,7 @@ const RegistroActividad = () => {
 
       {/* Estadísticas Rápidas */}
       {estadisticas && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card>
             <div className="flex items-center">
               <div className="p-3 bg-blue-100 rounded-full">
@@ -293,7 +293,7 @@ const RegistroActividad = () => {
                   Usuarios Activos
                 </p>
                 <p className="text-2xl font-bold text-gray-100 dark:text-white">
-                  {estadisticas.estadisticasPorUsuario?.length || 0}
+                  {estadisticas.usuariosActivosReales || 0}
                 </p>
               </div>
             </div>
@@ -309,6 +309,21 @@ const RegistroActividad = () => {
                 </p>
                 <p className="text-2xl font-bold text-gray-100 dark:text-white">
                   {estadisticas.estadisticasPorEntidad?.length || 0}
+                </p>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="flex items-center">
+              <div className="p-3 bg-indigo-100 rounded-full">
+                <HiUser className="w-6 h-6 text-indigo-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-300 dark:text-gray-300">
+                  En Logs
+                </p>
+                <p className="text-2xl font-bold text-gray-100 dark:text-white">
+                  {estadisticas.estadisticasPorUsuario?.length || 0}
                 </p>
               </div>
             </div>

@@ -20,12 +20,16 @@ const DashboardTable = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const user = JSON.parse(localStorage.getItem("user"));
-  
+
   // Nuevos estados para filtros y ordenamiento
   const [filtroEstado, setFiltroEstado] = useState(
     user?.rol === "medico" ? "pendiente" : "todos"
   );
   const [ordenFecha, setOrdenFecha] = useState("reciente"); // "reciente" o "antiguo"
+
+  // Estados para filtro de rango de fechas
+  const [fechaDesde, setFechaDesde] = useState("");
+  const [fechaHasta, setFechaHasta] = useState("");
 
   // Función para alternar entre vistas (citas y pacientes)
   const toggleView = () => {
@@ -159,11 +163,10 @@ const DashboardTable = () => {
             const searchLower = search.toLowerCase();
             result = result.filter(
               (cita) =>
-                cita.paciente && (
-                  cita.paciente.cedula?.includes(search) ||
+                cita.paciente &&
+                (cita.paciente.cedula?.includes(search) ||
                   cita.paciente.nombre?.toLowerCase().includes(searchLower) ||
-                  cita.paciente.apellido?.toLowerCase().includes(searchLower)
-                )
+                  cita.paciente.apellido?.toLowerCase().includes(searchLower))
             );
           }
         }
@@ -185,7 +188,16 @@ const DashboardTable = () => {
     };
     const debounceTimer = setTimeout(fetchData, 300);
     return () => clearTimeout(debounceTimer);
-  }, [search, viewMode, user?._id, user?.rol, filtroEstado, ordenFecha]);
+  }, [
+    search,
+    viewMode,
+    user?._id,
+    user?.rol,
+    filtroEstado,
+    ordenFecha,
+    fechaDesde,
+    fechaHasta,
+  ]);
 
   // Función para filtrar y ordenar los datos
   const getProcessedData = () => {
@@ -195,18 +207,73 @@ const DashboardTable = () => {
     if (viewMode === "citas") {
       // Filtrar por estado
       if (filtroEstado !== "todos") {
-        processed = processed.filter(cita => cita.estado === filtroEstado);
+        processed = processed.filter((cita) => cita.estado === filtroEstado);
       }
 
-      // Ordenar por fecha
+      // Filtrar por rango de fechas
+      if (fechaDesde || fechaHasta) {
+        processed = processed.filter((cita) => {
+          const fechaCita = new Date(cita.fecha);
+          let cumpleDesde = true;
+          let cumpleHasta = true;
+
+          if (fechaDesde) {
+            const desde = new Date(fechaDesde);
+            cumpleDesde = fechaCita >= desde;
+          }
+
+          if (fechaHasta) {
+            const hasta = new Date(fechaHasta);
+            // Agregar 23:59:59 al día "hasta" para incluir todo el día
+            hasta.setHours(23, 59, 59, 999);
+            cumpleHasta = fechaCita <= hasta;
+          }
+
+          return cumpleDesde && cumpleHasta;
+        });
+      }
+
+      // Ordenar por fecha y hora
       processed.sort((a, b) => {
-        const fechaA = new Date(`${a.fecha} ${a.hora}`);
-        const fechaB = new Date(`${b.fecha} ${b.hora}`);
-        
-        if (ordenFecha === "reciente") {
-          return fechaB - fechaA; // Más reciente primero
-        } else {
-          return fechaA - fechaB; // Más antiguo primero
+        try {
+          // Convertir fecha a objeto Date
+          const fechaA = new Date(a.fecha);
+          const fechaB = new Date(b.fecha);
+
+          // Parsear la hora (formato esperado: "HH:MM" o "HH:MM:SS")
+          const horaPartsA = a.hora.split(":").map((num) => parseInt(num, 10));
+          const horaPartsB = b.hora.split(":").map((num) => parseInt(num, 10));
+
+          // Crear objetos Date completos combinando fecha y hora
+          const fechaHoraA = new Date(
+            fechaA.getFullYear(),
+            fechaA.getMonth(),
+            fechaA.getDate(),
+            horaPartsA[0] || 0, // horas
+            horaPartsA[1] || 0, // minutos
+            horaPartsA[2] || 0 // segundos (opcional)
+          );
+
+          const fechaHoraB = new Date(
+            fechaB.getFullYear(),
+            fechaB.getMonth(),
+            fechaB.getDate(),
+            horaPartsB[0] || 0, // horas
+            horaPartsB[1] || 0, // minutos
+            horaPartsB[2] || 0 // segundos (opcional)
+          );
+
+          if (ordenFecha === "reciente") {
+            return fechaHoraB.getTime() - fechaHoraA.getTime(); // Más reciente primero
+          } else {
+            return fechaHoraA.getTime() - fechaHoraB.getTime(); // Más antiguo primero
+          }
+        } catch (error) {
+          console.error("Error al ordenar citas por fecha/hora:", error, {
+            a,
+            b,
+          });
+          return 0; // En caso de error, mantener orden original
         }
       });
     }
@@ -247,37 +314,124 @@ const DashboardTable = () => {
 
       {/* Filtros para citas */}
       {viewMode === "citas" && (
-        <div className="mb-4 flex flex-col sm:flex-row gap-4">
-          <div className="flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">
-              Filtrar por estado:
-            </label>
-            <Select
-              value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value)}
-              className="w-full sm:w-48"
-            >
-              <option value="todos">Todos los estados</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="confirmada">Confirmada</option>
-              <option value="cancelada">Cancelada</option>
-            </Select>
+        <>
+          <div className="mb-4 flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col">
+              <label className="mb-1 text-sm font-medium text-gray-700">
+                Filtrar por estado:
+              </label>
+              <Select
+                value={filtroEstado}
+                onChange={(e) => setFiltroEstado(e.target.value)}
+                className="w-full sm:w-48"
+              >
+                <option value="todos">Todos los estados</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="confirmada">Confirmada</option>
+                <option value="cancelada">Cancelada</option>
+              </Select>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="mb-1 text-sm font-medium text-gray-700">
+                Ordenar por fecha:
+              </label>
+              <Select
+                value={ordenFecha}
+                onChange={(e) => setOrdenFecha(e.target.value)}
+                className="w-full sm:w-48"
+              >
+                <option value="reciente">Más reciente primero</option>
+                <option value="antiguo">Más antiguo primero</option>
+              </Select>
+            </div>
+            <div className="flex flex-col">
+              <label className="mb-1 text-sm font-medium text-gray-700">
+                Desde fecha:
+              </label>
+              <TextInput
+                type="date"
+                value={fechaDesde}
+                onChange={(e) => setFechaDesde(e.target.value)}
+                className="w-full sm:w-48"
+                placeholder="Fecha inicial"
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="mb-1 text-sm font-medium text-gray-700">
+                Hasta fecha:
+              </label>
+              <TextInput
+                type="date"
+                value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
+                className="w-full sm:w-48"
+                placeholder="Fecha final"
+              />
+            </div>
+
+            <div className="flex flex-col justify-end">
+              <Button
+                onClick={() => {
+                  setFechaDesde("");
+                  setFechaHasta("");
+                }}
+                className="w-full sm:w-auto mb-2"
+                color="gray"
+              >
+                Limpiar fechas
+              </Button>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="mb-1 text-sm font-medium text-gray-700">
+                Filtros rápidos:
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="xs"
+                  color="blue"
+                  onClick={() => {
+                    const hoy = new Date().toISOString().split("T")[0];
+                    setFechaDesde(hoy);
+                    setFechaHasta(hoy);
+                  }}
+                >
+                  Hoy
+                </Button>
+                <Button
+                  size="xs"
+                  color="blue"
+                  onClick={() => {
+                    const hoy = new Date();
+                    const ayer = new Date(hoy);
+                    ayer.setDate(hoy.getDate() - 1);
+                    const semana = new Date(hoy);
+                    semana.setDate(hoy.getDate() - 7);
+                    setFechaDesde(semana.toISOString().split("T")[0]);
+                    setFechaHasta(hoy.toISOString().split("T")[0]);
+                  }}
+                >
+                  Última semana
+                </Button>
+                <Button
+                  size="xs"
+                  color="blue"
+                  onClick={() => {
+                    const hoy = new Date();
+                    const mes = new Date(hoy);
+                    mes.setDate(1); // Primer día del mes
+                    setFechaDesde(mes.toISOString().split("T")[0]);
+                    setFechaHasta(hoy.toISOString().split("T")[0]);
+                  }}
+                >
+                  Este mes
+                </Button>
+              </div>
+            </div>
           </div>
-          
-          <div className="flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">
-              Ordenar por fecha:
-            </label>
-            <Select
-              value={ordenFecha}
-              onChange={(e) => setOrdenFecha(e.target.value)}
-              className="w-full sm:w-48"
-            >
-              <option value="reciente">Más reciente primero</option>
-              <option value="antiguo">Más antiguo primero</option>
-            </Select>
-          </div>
-        </div>
+        </>
       )}
 
       {loading && <p className="text-center text-gray-500">Cargando...</p>}
@@ -286,10 +440,26 @@ const DashboardTable = () => {
       {/* Contador de resultados para citas */}
       {viewMode === "citas" && !loading && !error && (
         <div className="mb-4 text-sm text-gray-600">
-          {filtroEstado === "todos" 
-            ? `Mostrando ${sortedData.length} citas de ${data.length} totales`
-            : `Mostrando ${sortedData.length} citas con estado "${filtroEstado}" de ${data.length} totales`
-          }
+          {(() => {
+            let texto = `Mostrando ${sortedData.length} citas`;
+
+            // Agregar información del filtro de estado
+            if (filtroEstado !== "todos") {
+              texto += ` con estado "${filtroEstado}"`;
+            }
+
+            // Agregar información del filtro de fechas
+            if (fechaDesde && fechaHasta) {
+              texto += ` del ${fechaDesde} al ${fechaHasta}`;
+            } else if (fechaDesde) {
+              texto += ` desde ${fechaDesde}`;
+            } else if (fechaHasta) {
+              texto += ` hasta ${fechaHasta}`;
+            }
+
+            texto += ` de ${data.length} totales`;
+            return texto;
+          })()}
         </div>
       )}
 

@@ -62,8 +62,8 @@ const EditarCita = () => {
     estado: Yup.string()
       .oneOf(["pendiente", "confirmada", "cancelada"])
       .default("pendiente"),
-    presionArterial: Yup.number().optional(),
-    temperatura: Yup.number().optional(),
+    presionArterial: Yup.string().optional(),
+    temperatura: Yup.string().optional(),
     estudios: Yup.string().optional(),
     observaciones: Yup.string().optional(),
   });
@@ -189,7 +189,7 @@ const EditarCita = () => {
                 {medicos.map((medico) => (
                   <option key={medico._id} value={medico._id}>
                     {medico.usuario?.nombre} {medico.usuario?.apellido} -{" "}
-                    {medico.especialidad}
+                    {medico.especialidad?.nombre || "Sin especialidad"}
                   </option>
                 ))}
               </Field>
@@ -219,8 +219,9 @@ const EditarCita = () => {
             <div>
               <label className="block mb-1">Presión Arterial</label>
               <Field
-                type="number"
+                type="text"
                 name="presionArterial"
+                placeholder="Ej: 120/80"
                 className="w-full p-2 border rounded"
               />
               <ErrorMessage
@@ -232,8 +233,9 @@ const EditarCita = () => {
             <div>
               <label className="block mb-1">Temperatura</label>
               <Field
-                type="number"
+                type="text"
                 name="temperatura"
+                placeholder="Ej: 36,5"
                 className="w-full p-2 border rounded"
               />
               <ErrorMessage

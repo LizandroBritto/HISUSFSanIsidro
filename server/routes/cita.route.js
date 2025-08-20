@@ -1,7 +1,7 @@
 const express = require("express");
-const { authenticate } = require("../middleware/auth.middleware"); 
+const { authenticate } = require("../middleware/auth.middleware");
 
-const CitaController = require("../controllers/cita.controller"); 
+const CitaController = require("../controllers/cita.controller");
 const CitaRouter = express.Router();
 
 CitaRouter.get("/", authenticate, CitaController.getAllCitas);
@@ -13,6 +13,8 @@ CitaRouter.post("/new", authenticate, CitaController.createCita);
 CitaRouter.put("/:id", authenticate, CitaController.updateOneCitaById);
 
 CitaRouter.get("/paciente/:id", CitaController.getCitasByPaciente);
+
+CitaRouter.get("/medico/:id", authenticate, CitaController.getCitasByMedico);
 
 CitaRouter.delete("/:id", authenticate, CitaController.deleteOneCitaById);
 

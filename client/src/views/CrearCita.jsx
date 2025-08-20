@@ -58,23 +58,30 @@ const CrearCita = () => {
 
   const validationSchema = Yup.object().shape({
     fecha: Yup.date().required("Fecha es requerida"),
-    hora: Yup.string().required("Hora es requerida"),
     paciente: Yup.string().required("Paciente es requerido"),
     medico: Yup.string().required("Médico es requerido"),
-    estado: Yup.string()
-      .oneOf(["pendiente", "confirmada", "cancelada"])
-      .default("pendiente"),
-    presionArterial: Yup.number().optional(),
-    temperatura: Yup.number().optional(),
+    presionArterial: Yup.string().optional(),
+    temperatura: Yup.string().optional(),
     estudios: Yup.string().optional(),
     observaciones: Yup.string().optional(),
   });
 
   const handleSubmit = async (values, { resetForm }) => {
     try {
+      // Agregamos la hora actual y el estado pendiente al objeto values
+      const citaData = {
+        ...values,
+        hora: new Date().toLocaleTimeString("es-ES", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }),
+        estado: "pendiente",
+      };
+
       const response = await axios.post(
         "http://localhost:8000/api/citas/new",
-        values,
+        citaData,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -83,20 +90,20 @@ const CrearCita = () => {
       );
 
       if (response.status === 201) {
-         Swal.fire({
-                  title: "Cita creada exitosamente",
-                  icon: "success",
-                  draggable: true
-                });
+        Swal.fire({
+          title: "Cita creada exitosamente",
+          icon: "success",
+          draggable: true,
+        });
         resetForm();
         navigate("/dashboard");
       }
     } catch (error) {
-     Swal.fire({
-              icon: "error",
-              title: "Oops...",
-              text: error.response.data.error,
-            });
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: error.response.data.error,
+      });
     }
   };
 
@@ -112,12 +119,10 @@ const CrearCita = () => {
     <Formik
       initialValues={{
         fecha: "",
-        hora: "",
         // Prellenamos el campo paciente con el ID recibido en la URL
         paciente: pacienteId || "",
         // El campo médico se seleccionará mediante el <select>
         medico: "",
-        estado: "pendiente",
         presionArterial: "",
         temperatura: "",
         estudios: "",
@@ -127,7 +132,7 @@ const CrearCita = () => {
       onSubmit={handleSubmit}
       enableReinitialize
     >
-      {({ values }) => (
+      {() => (
         <Form className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
           <h2 className="text-2xl font-bold mb-4">Crear Nueva Cita</h2>
 
@@ -141,19 +146,6 @@ const CrearCita = () => {
               />
               <ErrorMessage
                 name="fecha"
-                component="div"
-                className="text-red-500 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block mb-1">Hora</label>
-              <Field
-                type="time"
-                name="hora"
-                className="w-full p-2 border rounded"
-              />
-              <ErrorMessage
-                name="hora"
                 component="div"
                 className="text-red-500 text-sm"
               />
@@ -194,7 +186,7 @@ const CrearCita = () => {
                 {medicos.map((medico) => (
                   <option key={medico._id} value={medico._id}>
                     {medico.usuario.nombre} {medico.usuario.apellido} -{" "}
-                    {medico.especialidad}
+                    {medico.especialidad?.nombre || "Sin especialidad"}
                   </option>
                 ))}
               </Field>
@@ -206,27 +198,11 @@ const CrearCita = () => {
             </div>
 
             <div>
-              <label className="block mb-1">Estado</label>
-              <Field
-                as="select"
-                name="estado"
-                className="w-full p-2 border rounded"
-              >
-                <option value="pendiente">Pendiente</option>
-                <option value="confirmada">Confirmada</option>
-                <option value="cancelada">Cancelada</option>
-              </Field>
-              <ErrorMessage
-                name="estado"
-                component="div"
-                className="text-red-500 text-sm"
-              />
-            </div>
-            <div>
               <label className="block mb-1">Presión Arterial</label>
               <Field
-                type="number"
+                type="text"
                 name="presionArterial"
+                placeholder="Ej: 120/80"
                 className="w-full p-2 border rounded"
               />
               <ErrorMessage
@@ -238,8 +214,9 @@ const CrearCita = () => {
             <div>
               <label className="block mb-1">Temperatura</label>
               <Field
-                type="number"
+                type="text"
                 name="temperatura"
+                placeholder="Ej: 36,5"
                 className="w-full p-2 border rounded"
               />
               <ErrorMessage
@@ -250,50 +227,50 @@ const CrearCita = () => {
             </div>
             {user?.rol === "medico" && (
               <>
-                    <div>
-              <label className="block mb-1">Estudios</label>
-              <Field
-                type="text"
-                name="estudios"
-                className="w-full p-2 border rounded"
-              />
-              <ErrorMessage
-                name="estudios"
-                component="div"
-                className="text-red-500 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block mb-1">Observaciones</label>
-              <Field
-                type="text"
-                name="observaciones"
-                className="w-full p-2 border rounded"
-              />
-              <ErrorMessage
-                name="observaciones"
-                component="div"
-                className="text-red-500 text-sm"
-              />
-            </div>
+                <div>
+                  <label className="block mb-1">Estudios</label>
+                  <Field
+                    type="text"
+                    name="estudios"
+                    className="w-full p-2 border rounded"
+                  />
+                  <ErrorMessage
+                    name="estudios"
+                    component="div"
+                    className="text-red-500 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">Observaciones</label>
+                  <Field
+                    type="text"
+                    name="observaciones"
+                    className="w-full p-2 border rounded"
+                  />
+                  <ErrorMessage
+                    name="observaciones"
+                    component="div"
+                    className="text-red-500 text-sm"
+                  />
+                </div>
               </>
             )}
-      
-                <div className="flex gap-1">
-                <button
-              type="submit"
-              className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
-            >
-              Crear Cita
-            </button>
-            <a
-              type="submit"
-              className="w-full flex justify-center bg-red-500 text-white py-2 rounded hover:bg-red-600"
-              onClick={() => navigate("/dashboard")}>
-              Cancelar
-            </a>
-                </div>
-         
+
+            <div className="flex gap-1">
+              <button
+                type="submit"
+                className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+              >
+                Crear Cita
+              </button>
+              <a
+                type="submit"
+                className="w-full flex justify-center bg-red-500 text-white py-2 rounded hover:bg-red-600"
+                onClick={() => navigate("/dashboard")}
+              >
+                Cancelar
+              </a>
+            </div>
           </div>
         </Form>
       )}

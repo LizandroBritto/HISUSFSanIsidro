@@ -111,6 +111,55 @@ module.exports = {
       res.status(500).json({ error: "Error interno del servidor" });
     }
   },
+  // Actualizar estado y sala del médico (para que el médico se auto-gestione)
+  actualizarEstadoYSala: async (req, res) => {
+    try {
+      const { usuarioId } = req.params; // ID del usuario (médico)
+      const { estado, sala, forzar } = req.body;
+
+      // Buscar el médico por usuario
+      const medico = await Medico.findOne({ usuario: usuarioId });
+      if (!medico) {
+        return res.status(404).json({ error: "Médico no encontrado" });
+      }
+
+      // Si se está cambiando la sala y NO se está forzando, verificar conflictos
+      if (sala && sala !== medico.sala.toString() && !forzar) {
+        const medicoEnSala = await Medico.findOne({
+          sala: sala,
+          _id: { $ne: medico._id }, // Excluir el médico actual
+        }).populate("usuario", "nombre apellido");
+
+        if (medicoEnSala) {
+          return res.status(409).json({
+            error: "SALA_OCUPADA",
+            message: `La sala ya está asignada al Dr. ${medicoEnSala.usuario.nombre} ${medicoEnSala.usuario.apellido}`,
+            medicoExistente: {
+              nombre: medicoEnSala.usuario.nombre,
+              apellido: medicoEnSala.usuario.apellido,
+            },
+          });
+        }
+      }
+
+      // Actualizar campos si se proporcionan
+      if (estado) medico.estado = estado;
+      if (sala) medico.sala = sala;
+
+      await medico.save();
+
+      // Devolver médico actualizado con populate
+      const medicoActualizado = await Medico.findById(medico._id)
+        .populate("usuario", "nombre apellido ci rol")
+        .populate("especialidad", "nombre descripcion")
+        .populate("sala", "numero nombre");
+
+      res.json(medicoActualizado);
+    } catch (error) {
+      console.error("Error al actualizar estado y sala del médico:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  },
   // Eliminar un médico
   deleteOneMedicoById: (req, res) => {
     Medico.findByIdAndDelete(req.params.id)

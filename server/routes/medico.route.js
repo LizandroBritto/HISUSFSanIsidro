@@ -32,4 +32,10 @@ MedicoRouter.put(
   MedicoController.actualizarSalaMedico
 );
 
+MedicoRouter.put(
+  "/estado-sala/usuario/:usuarioId",
+  authenticate,
+  MedicoController.actualizarEstadoYSala
+);
+
 module.exports = MedicoRouter;

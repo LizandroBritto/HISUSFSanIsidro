@@ -17,6 +17,11 @@ const medicoSchema = new mongoose.Schema({
     ref: "Sala",
     required: [true, "La sala del médico es requerida"],
   },
+  estado: {
+    type: String,
+    enum: ["ausente", "disponible", "no disponible"],
+    default: "disponible",
+  },
 });
 
 const Medico = mongoose.model("Medico", medicoSchema);

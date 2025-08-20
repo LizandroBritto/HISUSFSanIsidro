@@ -130,11 +130,9 @@ module.exports = {
           hora, // Se asume que la hora se almacena en el mismo formato (ej. "05:40")
         });
         if (citaConflict) {
-          return res
-            .status(400)
-            .json({
-              error: "El doctor ya tiene una cita en ese mismo horario",
-            });
+          return res.status(400).json({
+            error: "El doctor ya tiene una cita en ese mismo horario",
+          });
         }
       }
 
@@ -235,6 +233,24 @@ module.exports = {
       return res.json(citas);
     } catch (error) {
       console.error("Error al obtener citas del paciente:", error);
+      return res.status(400).json({ error: error.message });
+    }
+  },
+
+  // Obtener citas por médico
+  getCitasByMedico: async (req, res) => {
+    try {
+      const medicoId = req.params.id; // ID del médico obtenido de la URL
+      const citas = await Cita.find({ medico: medicoId })
+        .populate("paciente") // Popula los datos del paciente
+        .populate({
+          path: "medico",
+          populate: { path: "usuario" }, // Popula los datos del usuario asociado al médico
+        })
+        .sort({ fecha: 1, hora: 1 }); // Ordenar por fecha y hora
+      return res.json(citas);
+    } catch (error) {
+      console.error("Error al obtener citas del médico:", error);
       return res.status(400).json({ error: error.message });
     }
   },

@@ -57,13 +57,24 @@ const allowedRoles = {
 const authenticate = async (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
 
+  console.log(
+    `🔐 Auth middleware - Ruta: ${req.method} ${req.baseUrl}${
+      req.route?.path || req.path
+    }`
+  );
+  console.log(`🔑 Token presente: ${token ? "Sí" : "No"}`);
+
   if (!token) {
+    console.log("❌ No token provided");
     return res
       .status(401)
       .json({ verified: false, message: "No token provided" });
   }
   try {
     const decoded = verifyToken(token);
+    console.log(
+      `👤 Token decodificado para usuario: ${decoded._id}, rol: ${decoded.rol}`
+    );
 
     // Buscar la información completa del usuario basado en su rol
     let usuarioCompleto = null;
@@ -115,6 +126,28 @@ const authenticate = async (req, res, next) => {
 
     const baseRoute = req.baseUrl; // Ej: /api/usuarios
     const httpMethod = req.method.toLowerCase(); // Ej: post
+    const fullPath = baseRoute + (req.route?.path || ""); // Ruta completa con parámetros
+
+    console.log(
+      `🛣️  Verificando permisos - baseRoute: ${baseRoute}, method: ${httpMethod}, fullPath: ${fullPath}`
+    );
+
+    // Excepción especial: los médicos pueden actualizar su propio estado y sala
+    if (
+      fullPath === "/api/medicos/estado-sala/usuario/:usuarioId" &&
+      httpMethod === "put" &&
+      decoded.rol === "medico"
+    ) {
+      // Verificar que el médico solo puede actualizar su propia información
+      const usuarioIdFromUrl = req.params.usuarioId;
+      if (decoded._id.toString() === usuarioIdFromUrl) {
+        return next(); // Permitir acceso
+      } else {
+        return res
+          .status(403)
+          .json({ message: "No puedes actualizar información de otro médico" });
+      }
+    }
 
     // Validar que la ruta esté en la configuración de permisos
     const permissions = allowedRoles[baseRoute];
@@ -130,11 +163,19 @@ const authenticate = async (req, res, next) => {
 
     // Validar que el usuario tenga un rol autorizado
     if (!allowedRolesForMethod.includes(decoded.rol)) {
+      console.log(
+        `❌ Rol no autorizado: ${decoded.rol} para ${httpMethod} ${baseRoute}`
+      );
       return res.status(403).json({ message: "Rol no autorizado" });
     }
 
+    console.log(
+      `✅ Autenticación exitosa para ${decoded.rol} en ${httpMethod} ${baseRoute}`
+    );
     next();
   } catch (error) {
+    console.log("❌ Error en autenticación:", error.message);
+    console.log("🔍 Tipo de error:", error.constructor.name);
     return res
       .status(401)
       .json({ verified: false, message: "Invalid or expired token" });

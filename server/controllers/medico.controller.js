@@ -49,68 +49,87 @@ module.exports = {
       });
       await nuevoMedico.save();
 
-      // Hacer populate para devolver los datos completos
+      // Obtener el médico con populate para respuesta
       const medicoCompleto = await Medico.findById(nuevoMedico._id)
         .populate("usuario", "nombre apellido ci rol")
         .populate("especialidad", "nombre descripcion")
         .populate("sala", "numero nombre");
 
-      res.status(201).json(medicoCompleto);
+      return res.status(201).json({
+        message: "Médico creado exitosamente",
+        medico: medicoCompleto,
+      });
     } catch (error) {
-      res.status(500).json({ error: "Error al crear médico" });
+      console.error("Error al crear médico:", error);
+      if (error.code === 11000) {
+        return res
+          .status(400)
+          .json({ error: "Ya existe un médico con este usuario" });
+      }
+      return res
+        .status(500)
+        .json({ error: "Error interno del servidor", details: error.message });
     }
   },
 
   // Actualizar un médico
   updateOneMedicoById: (req, res) => {
-    Medico.findByIdAndUpdate(req.params.id, req.body, { new: true })
-      .populate("usuario", "nombre apellido ci rol")
-      .populate("especialidad", "nombre descripcion")
-      .populate("sala", "numero nombre")
-      .then((medico) => res.json(medico))
+    Medico.findByIdAndUpdate(req.params.id, req.body)
+      .then(() => res.json("Médico actualizado."))
       .catch((err) => res.status(400).json("Error: " + err));
   },
+
+  // Obtener médico por ID de usuario
   getMedicoByUsuarioId: async (req, res) => {
     try {
+      console.log("🔍 Buscando médico para usuario ID:", req.params.id);
       const medico = await Medico.findOne({ usuario: req.params.id })
         .populate("usuario", "nombre apellido ci rol")
-        .populate("especialidad", "nombre")
+        .populate("especialidad", "nombre descripcion")
         .populate("sala", "numero nombre");
+
+      console.log("👨‍⚕️ Médico encontrado:", medico ? "Sí" : "No");
 
       if (!medico) {
         return res.status(404).json({ error: "Médico no encontrado" });
       }
 
       res.json(medico);
-    } catch (err) {
-      console.error("Error al buscar médico por usuario:", err);
+    } catch (error) {
+      console.error("Error al obtener médico por usuario:", error);
       res.status(500).json({ error: "Error interno del servidor" });
     }
   },
+
+  // Actualizar solo la sala del médico
   actualizarSalaMedico: async (req, res) => {
     try {
-      const { id } = req.params; // ID del médico (por ejemplo, user._id o el ID de medico)
-      const { sala } = req.body; // La nueva sala que se envía en el body
+      const { usuarioId } = req.params; // ID del usuario (médico)
+      const { sala } = req.body;
 
-      if (!sala || sala.trim() === "") {
-        return res.status(400).json({ error: "La sala es requerida" });
-      }
-
-      const medico = await Medico.findByIdAndUpdate(id, { sala }, { new: true })
-        .populate("usuario", "nombre apellido ci rol")
-        .populate("especialidad", "nombre descripcion")
-        .populate("sala", "numero nombre");
-
+      // Buscar el médico por usuario
+      const medico = await Medico.findOne({ usuario: usuarioId });
       if (!medico) {
         return res.status(404).json({ error: "Médico no encontrado" });
       }
 
-      res.status(200).json(medico);
+      // Actualizar la sala
+      medico.sala = sala;
+      await medico.save();
+
+      // Devolver médico actualizado con populate
+      const medicoActualizado = await Medico.findById(medico._id)
+        .populate("usuario", "nombre apellido ci rol")
+        .populate("especialidad", "nombre descripcion")
+        .populate("sala", "numero nombre");
+
+      res.json(medicoActualizado);
     } catch (error) {
       console.error("Error al actualizar sala del médico:", error);
       res.status(500).json({ error: "Error interno del servidor" });
     }
   },
+
   // Actualizar estado y sala del médico (para que el médico se auto-gestione)
   actualizarEstadoYSala: async (req, res) => {
     try {
@@ -160,12 +179,14 @@ module.exports = {
       res.status(500).json({ error: "Error interno del servidor" });
     }
   },
+
   // Eliminar un médico
   deleteOneMedicoById: (req, res) => {
     Medico.findByIdAndDelete(req.params.id)
       .then(() => res.json("Médico eliminado."))
       .catch((err) => res.status(400).json("Error: " + err));
   },
+
   findByEspecialidad: (req, res) => {
     const especialidad = req.params.especialidad;
 
@@ -182,5 +203,79 @@ module.exports = {
         res.json(medicos);
       })
       .catch((err) => res.status(400).json("Error: " + err));
+  },
+
+  // Obtener médicos con estadísticas de citas para enfermeros
+  getMedicosConEstadisticas: async (req, res) => {
+    try {
+      const { estado } = req.query; // Filtro opcional por estado del médico
+
+      // Construir filtro
+      const filtro = {};
+      if (estado) {
+        filtro.estado = estado;
+      }
+
+      // Asegurar que el médico tenga un usuario asociado
+      filtro.usuario = { $exists: true, $ne: null };
+
+      // Obtener médicos con populate
+      const medicosRaw = await Medico.find(filtro)
+        .populate("usuario", "nombre apellido ci rol")
+        .populate("especialidad", "nombre descripcion")
+        .populate("sala", "numero nombre");
+
+      // Filtrar médicos que tengan usuario con nombre y apellido válidos
+      const medicos = medicosRaw.filter(
+        (medico) =>
+          medico.usuario &&
+          medico.usuario.nombre &&
+          medico.usuario.apellido &&
+          medico.usuario.nombre.trim() !== "" &&
+          medico.usuario.apellido.trim() !== ""
+      );
+
+      // Obtener estadísticas de citas para cada médico usando agregación
+      const Cita = require("../models/cita.model");
+
+      const medicosConEstadisticas = await Promise.all(
+        medicos.map(async (medico) => {
+          const estadisticas = await Cita.aggregate([
+            { $match: { medico: medico._id } },
+            {
+              $group: {
+                _id: "$estado",
+                count: { $sum: 1 },
+              },
+            },
+          ]);
+
+          // Formatear estadísticas
+          const stats = {
+            pendientes: 0,
+            confirmadas: 0,
+            canceladas: 0,
+          };
+
+          estadisticas.forEach((stat) => {
+            if (stat._id === "pendiente") stats.pendientes = stat.count;
+            if (stat._id === "confirmada") stats.confirmadas = stat.count;
+            if (stat._id === "cancelada") stats.canceladas = stat.count;
+          });
+
+          return {
+            ...medico.toObject(),
+            estadisticasCitas: stats,
+          };
+        })
+      );
+
+      res.json(medicosConEstadisticas);
+    } catch (error) {
+      console.error("Error al obtener médicos con estadísticas:", error);
+      res
+        .status(500)
+        .json({ error: "Error al obtener médicos con estadísticas" });
+    }
   },
 };

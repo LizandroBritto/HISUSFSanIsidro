@@ -195,9 +195,16 @@ const GestionarEspecialidades = () => {
                       {especialidad.descripcion || "Sin descripción"}
                     </Table.Cell>
                     <Table.Cell>
-                      {new Date(especialidad.fechaCreacion).toLocaleDateString(
-                        "es-ES"
-                      )}
+                      {especialidad.createdAt
+                        ? new Date(especialidad.createdAt).toLocaleDateString(
+                            "es-ES",
+                            {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            }
+                          )
+                        : "Sin fecha"}
                     </Table.Cell>
                     <Table.Cell>
                       <div className="flex space-x-2">

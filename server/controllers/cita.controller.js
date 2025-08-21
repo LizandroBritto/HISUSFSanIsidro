@@ -8,7 +8,11 @@ module.exports = {
       .populate("paciente") // Obtiene los datos del paciente asociado
       .populate({
         path: "medico", // Obtiene los datos del médico
-        populate: { path: "usuario" }, // Y anida el populate del campo "usuario"
+        populate: [
+          { path: "usuario", select: "nombre apellido ci rol" }, // Y anida el populate del campo "usuario"
+          { path: "especialidad", select: "nombre descripcion" }, // Popula la especialidad del médico
+          { path: "sala", select: "numero nombre" }, // Popula la sala del médico
+        ],
       })
       .then((citas) => res.json(citas))
       .catch((err) => res.status(400).json("Error: " + err));
@@ -24,7 +28,11 @@ module.exports = {
       })
       .populate({
         path: "medico",
-        populate: { path: "usuario" }, // Para anidar populate del médico
+        populate: [
+          { path: "usuario", select: "nombre apellido ci rol" }, // Para anidar populate del médico
+          { path: "especialidad", select: "nombre descripcion" }, // Popula la especialidad del médico
+          { path: "sala", select: "numero nombre" }, // Popula la sala del médico
+        ],
       })
       .then((cita) => res.json(cita))
       .catch((err) => res.status(400).json("Error: " + err));
@@ -228,7 +236,11 @@ module.exports = {
         .populate("paciente") // Popula los datos del paciente
         .populate({
           path: "medico",
-          populate: { path: "usuario" }, // Popula los datos del usuario asociado al médico
+          populate: [
+            { path: "usuario", select: "nombre apellido ci rol" }, // Popula los datos del usuario asociado al médico
+            { path: "especialidad", select: "nombre descripcion" }, // Popula la especialidad del médico
+            { path: "sala", select: "numero nombre" }, // Popula la sala del médico
+          ],
         });
       return res.json(citas);
     } catch (error) {
@@ -245,7 +257,11 @@ module.exports = {
         .populate("paciente") // Popula los datos del paciente
         .populate({
           path: "medico",
-          populate: { path: "usuario" }, // Popula los datos del usuario asociado al médico
+          populate: [
+            { path: "usuario", select: "nombre apellido ci rol" }, // Popula los datos del usuario asociado al médico
+            { path: "especialidad", select: "nombre descripcion" }, // Popula la especialidad del médico
+            { path: "sala", select: "numero nombre" }, // Popula la sala del médico
+          ],
         })
         .sort({ fecha: 1, hora: 1 }); // Ordenar por fecha y hora
       return res.json(citas);

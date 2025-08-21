@@ -7,6 +7,12 @@ const MedicoRouter = express.Router();
 MedicoRouter.get("/", authenticate, MedicoController.getAllMedicos); // Ruta protegida
 
 MedicoRouter.get(
+  "/estadisticas",
+  authenticate,
+  MedicoController.getMedicosConEstadisticas
+); // Nueva ruta para enfermeros
+
+MedicoRouter.get(
   "/usuario/:id",
   authenticate,
   MedicoController.getMedicoByUsuarioId

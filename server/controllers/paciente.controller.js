@@ -5,6 +5,11 @@ module.exports = {
   // Obtener todos los pacientes
   getAllPacientes: (req, res) => {
     Paciente.find()
+      .sort({
+        estadoPaciente: -1, // Activos primero (A viene antes que I en orden alfabético descendente)
+        nombre: 1, // Luego ordenar por nombre ascendente
+        apellido: 1, // Y por apellido ascendente
+      })
       .then((pacientes) => res.json(pacientes))
       .catch((err) => res.status(400).json("Error: " + err));
   },

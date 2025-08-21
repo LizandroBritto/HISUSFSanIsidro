@@ -39,6 +39,13 @@ const RegistroActividad = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
 
+  // Estados para el modal de descarga
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [downloadFilters, setDownloadFilters] = useState({
+    fechaInicio: "",
+    fechaFin: "",
+  });
+
   // Mapeo de acciones a colores y textos amigables
   const accionesConfig = {
     CREAR_USUARIO: { color: "success", text: "Crear Usuario", icon: "👤" },
@@ -174,16 +181,36 @@ const RegistroActividad = () => {
     });
   };
 
-  const descargarExcel = async () => {
+  // Función para abrir el modal de descarga
+  const abrirModalDescarga = () => {
+    setShowDownloadModal(true);
+  };
+
+  // Función para descargar con filtros de fecha específicos
+  const descargarExcelConFiltros = async () => {
     try {
-      const params = new URLSearchParams(filtros);
+      // Crear parámetros de descarga
+      const params = new URLSearchParams();
+
+      // Si hay fechas seleccionadas, usarlas; sino usar las del filtro general
+      const fechaInicio = downloadFilters.fechaInicio || filtros.fechaInicio;
+      const fechaFin = downloadFilters.fechaFin || filtros.fechaFin;
+
+      if (fechaInicio) params.append("fechaInicio", fechaInicio);
+      if (fechaFin) params.append("fechaFin", fechaFin);
+
+      // Agregar otros filtros activos
+      if (filtros.accion) params.append("accion", filtros.accion);
+      if (filtros.entidad) params.append("entidad", filtros.entidad);
+      if (filtros.exitoso) params.append("exitoso", filtros.exitoso);
+
       const response = await axios.get(
         `http://localhost:8000/api/logs/descargar-excel?${params}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-          responseType: "blob", // Importante para descargar archivos
+          responseType: "blob",
         }
       );
 
@@ -207,6 +234,10 @@ const RegistroActividad = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+
+      // Cerrar modal y limpiar filtros de descarga
+      setShowDownloadModal(false);
+      setDownloadFilters({ fechaInicio: "", fechaFin: "" });
     } catch (error) {
       console.error("Error al descargar Excel:", error);
       setError("Error al descargar el archivo Excel");
@@ -393,7 +424,11 @@ const RegistroActividad = () => {
               Limpiar Filtros
             </Button>
 
-            <Button onClick={descargarExcel} color="green" disabled={loading}>
+            <Button
+              onClick={abrirModalDescarga}
+              color="green"
+              disabled={loading}
+            >
               <HiDownload className="w-4 h-4 mr-2" />
               Descargar Excel
             </Button>
@@ -505,6 +540,90 @@ const RegistroActividad = () => {
           </div>
         )}
       </Card>
+
+      {/* Modal de Descarga Excel */}
+      <Modal
+        show={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+        size="md"
+      >
+        <Modal.Header>Descargar Excel - Registro de Actividad</Modal.Header>
+        <Modal.Body>
+          <div className="space-y-4">
+            <p className="text-gray-600 dark:text-gray-300">
+              Selecciona el rango de fechas para la descarga. Si dejas los
+              campos vacíos, se descargarán todos los registros.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="fechaDesde"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Fecha Desde
+                </label>
+                <TextInput
+                  id="fechaDesde"
+                  type="date"
+                  value={downloadFilters.fechaInicio}
+                  onChange={(e) =>
+                    setDownloadFilters((prev) => ({
+                      ...prev,
+                      fechaInicio: e.target.value,
+                    }))
+                  }
+                  placeholder="Fecha de inicio"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="fechaHasta"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Fecha Hasta
+                </label>
+                <TextInput
+                  id="fechaHasta"
+                  type="date"
+                  value={downloadFilters.fechaFin}
+                  onChange={(e) =>
+                    setDownloadFilters((prev) => ({
+                      ...prev,
+                      fechaFin: e.target.value,
+                    }))
+                  }
+                  placeholder="Fecha de fin"
+                />
+              </div>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>Nota:</strong> La descarga incluirá todos los filtros
+                actualmente aplicados (acción, entidad, estado) además del rango
+                de fechas seleccionado.
+              </p>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button color="green" onClick={descargarExcelConFiltros}>
+            <HiDownload className="w-4 h-4 mr-2" />
+            Descargar
+          </Button>
+          <Button
+            color="gray"
+            onClick={() => {
+              setShowDownloadModal(false);
+              setDownloadFilters({ fechaInicio: "", fechaFin: "" });
+            }}
+          >
+            Cancelar
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* Modal de Detalle */}
       <Modal show={showModal} onClose={() => setShowModal(false)} size="2xl">

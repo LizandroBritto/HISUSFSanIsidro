@@ -6,6 +6,8 @@ const CitaRouter = express.Router();
 
 CitaRouter.get("/", authenticate, CitaController.getAllCitas);
 
+CitaRouter.get("/reporte", authenticate, CitaController.generarReporteCitas);
+
 CitaRouter.get("/:id", authenticate, CitaController.getOneCita);
 
 CitaRouter.post("/new", authenticate, CitaController.createCita);

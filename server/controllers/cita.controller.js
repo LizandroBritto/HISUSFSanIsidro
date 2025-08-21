@@ -1,5 +1,6 @@
 const Cita = require("../models/cita.model");
 const { crearLogManual } = require("../middleware/logging.middleware");
+const ExcelJS = require("exceljs");
 
 module.exports = {
   // Obtener todas las citas
@@ -276,5 +277,179 @@ module.exports = {
     Cita.findByIdAndDelete(req.params.id)
       .then(() => res.json("Cita eliminada."))
       .catch((err) => res.status(400).json("Error: " + err));
+  },
+
+  // Generar reporte de citas en Excel
+  generarReporteCitas: async (req, res) => {
+    try {
+      const { fechaDesde, fechaHasta, estado } = req.query;
+      const usuario = req.user;
+
+      // Construir el filtro base
+      let filtro = {};
+
+      // Agregar filtro de fecha solo si se proporcionan ambas fechas
+      if (fechaDesde && fechaHasta) {
+        filtro.fecha = {
+          $gte: new Date(fechaDesde),
+          $lte: new Date(fechaHasta + "T23:59:59.999Z"),
+        };
+      } else if (fechaDesde) {
+        // Solo fecha desde
+        filtro.fecha = { $gte: new Date(fechaDesde) };
+      } else if (fechaHasta) {
+        // Solo fecha hasta
+        filtro.fecha = { $lte: new Date(fechaHasta + "T23:59:59.999Z") };
+      }
+
+      // Si el usuario es médico, filtrar solo sus citas
+      if (usuario.rol === "medico") {
+        // Buscar el médico correspondiente al usuario
+        const Medico = require("../models/medico.model");
+        const medico = await Medico.findOne({ usuario: usuario._id });
+        if (medico) {
+          filtro.medico = medico._id;
+        }
+      }
+
+      // Agregar filtro por estado si se especifica
+      if (estado && estado !== "todos") {
+        filtro.estado = estado;
+      }
+
+      // Obtener las citas
+      const citas = await Cita.find(filtro)
+        .populate({
+          path: "paciente",
+          select:
+            "nombre apellido cedula telefono fechaNacimiento sexo grupoSanguineo",
+        })
+        .populate({
+          path: "medico",
+          populate: [
+            { path: "usuario", select: "nombre apellido" },
+            { path: "especialidad", select: "nombre" },
+            { path: "sala", select: "numero nombre" },
+          ],
+        })
+        .sort({ fecha: 1, hora: 1 });
+
+      // Crear libro de Excel
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Reporte de Citas");
+
+      // Configurar encabezados
+      const headers = [
+        "Fecha",
+        "Hora",
+        "Estado",
+        "Paciente",
+        "Cédula",
+        "Teléfono",
+        "Médico",
+        "Especialidad",
+        "Sala",
+        "Estudios",
+        "Observaciones",
+      ];
+
+      worksheet.addRow(headers);
+
+      // Estilizar encabezados
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE0E0E0" },
+      };
+
+      // Agregar datos
+      citas.forEach((cita) => {
+        const row = [
+          new Date(cita.fecha).toLocaleDateString("es-ES"),
+          cita.hora,
+          cita.estado,
+          `${cita.paciente?.nombre || ""} ${
+            cita.paciente?.apellido || ""
+          }`.trim(),
+          cita.paciente?.cedula || "",
+          cita.paciente?.telefono || "",
+          `${cita.medico?.usuario?.nombre || ""} ${
+            cita.medico?.usuario?.apellido || ""
+          }`.trim(),
+          cita.medico?.especialidad?.nombre || "",
+          cita.medico?.sala?.numero
+            ? `${cita.medico.sala.numero} - ${cita.medico.sala.nombre || ""}`
+            : "",
+          cita.estudios || "",
+          cita.observaciones || "",
+        ];
+        worksheet.addRow(row);
+      });
+
+      // Ajustar ancho de columnas
+      worksheet.columns.forEach((column) => {
+        column.width = 15;
+      });
+
+      // Configurar headers para descarga
+      const fechaReporte = new Date().toISOString().split("T")[0];
+      const estadoTexto = estado === "todos" || !estado ? "todas" : estado;
+
+      // Construir el nombre del archivo dinámicamente
+      let filename = `reporte_citas_${estadoTexto}`;
+      if (fechaDesde && fechaHasta) {
+        filename += `_${fechaDesde}_${fechaHasta}`;
+      } else if (fechaDesde) {
+        filename += `_desde_${fechaDesde}`;
+      } else if (fechaHasta) {
+        filename += `_hasta_${fechaHasta}`;
+      } else {
+        filename += "_completo";
+      }
+      filename += `_${fechaReporte}.xlsx`;
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filename}"`
+      );
+
+      // Escribir el archivo
+      await workbook.xlsx.write(res);
+      res.end();
+
+      // Log de la actividad
+      let mensajeLog = `Generó reporte de citas (`;
+      if (fechaDesde && fechaHasta) {
+        mensajeLog += `${fechaDesde} a ${fechaHasta}`;
+      } else if (fechaDesde) {
+        mensajeLog += `desde ${fechaDesde}`;
+      } else if (fechaHasta) {
+        mensajeLog += `hasta ${fechaHasta}`;
+      } else {
+        mensajeLog += `todas las fechas`;
+      }
+      mensajeLog += `, estado: ${estadoTexto})`;
+
+      await crearLogManual(
+        usuario._id,
+        "reporte",
+        "reporte_citas",
+        null,
+        mensajeLog
+      );
+    } catch (error) {
+      console.error("Error al generar reporte:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error al generar el reporte",
+        error: error.message,
+      });
+    }
   },
 };

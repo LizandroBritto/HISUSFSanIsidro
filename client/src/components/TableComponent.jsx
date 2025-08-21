@@ -10,6 +10,8 @@ import {
   Button,
   Select,
   Badge,
+  Modal,
+  Label,
 } from "flowbite-react";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -35,6 +37,13 @@ const DashboardTable = () => {
   // Estado para filtro de médicos (solo para enfermeros)
   const [filtroEstadoMedico, setFiltroEstadoMedico] = useState("todos");
   const [filtroEspecialidad, setFiltroEspecialidad] = useState("todos");
+
+  // Estados para el modal de reporte de citas (solo para médicos)
+  const [mostrarModalReporte, setMostrarModalReporte] = useState(false);
+  const [reporteFechaDesde, setReporteFechaDesde] = useState("");
+  const [reporteFechaHasta, setReporteFechaHasta] = useState("");
+  const [reporteEstado, setReporteEstado] = useState("todos");
+  const [generandoReporte, setGenerandoReporte] = useState(false);
 
   // Función para alternar entre vistas (citas, pacientes y médicos)
   const toggleView = (mode) => {
@@ -113,6 +122,104 @@ const DashboardTable = () => {
         text: "La operación fue cancelada.",
         icon: "info",
       });
+    }
+  };
+
+  // Función para generar reporte de citas
+  const generarReporteCitas = async () => {
+    // Validar que si se proporciona una fecha, la otra también sea válida
+    if (
+      reporteFechaDesde &&
+      reporteFechaHasta &&
+      new Date(reporteFechaDesde) > new Date(reporteFechaHasta)
+    ) {
+      Swal.fire({
+        title: "Fechas inválidas",
+        text: "La fecha 'desde' no puede ser mayor que la fecha 'hasta'.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    try {
+      setGenerandoReporte(true);
+      const token = localStorage.getItem("token");
+
+      // Construir la URL con los parámetros de filtro opcionales
+      let url = `http://localhost:8000/api/citas/reporte`;
+      const params = new URLSearchParams();
+
+      if (reporteFechaDesde) {
+        params.append("fechaDesde", reporteFechaDesde);
+      }
+      if (reporteFechaHasta) {
+        params.append("fechaHasta", reporteFechaHasta);
+      }
+      if (reporteEstado !== "todos") {
+        params.append("estado", reporteEstado);
+      }
+
+      // Agregar parámetros solo si existen
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al generar el reporte");
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+
+      // Generar nombre del archivo dinámicamente
+      const fecha = new Date().toISOString().split("T")[0];
+      const estadoTexto = reporteEstado === "todos" ? "todas" : reporteEstado;
+
+      let filename = `reporte_citas_${estadoTexto}`;
+      if (reporteFechaDesde && reporteFechaHasta) {
+        filename += `_${reporteFechaDesde}_${reporteFechaHasta}`;
+      } else if (reporteFechaDesde) {
+        filename += `_desde_${reporteFechaDesde}`;
+      } else if (reporteFechaHasta) {
+        filename += `_hasta_${reporteFechaHasta}`;
+      } else {
+        filename += `_completo`;
+      }
+      filename += `_${fecha}.xlsx`;
+
+      link.download = filename;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      // Cerrar el modal y resetear los campos
+      setMostrarModalReporte(false);
+      setReporteFechaDesde("");
+      setReporteFechaHasta("");
+      setReporteEstado("todos");
+
+      Swal.fire({
+        title: "¡Reporte generado!",
+        text: "El reporte se ha descargado exitosamente.",
+        icon: "success",
+      });
+    } catch (error) {
+      console.error("Error al generar reporte:", error);
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo generar el reporte. Intenta nuevamente.",
+        icon: "error",
+      });
+    } finally {
+      setGenerandoReporte(false);
     }
   };
 
@@ -421,6 +528,16 @@ const DashboardTable = () => {
               color={viewMode === "medicos" ? "blue" : "gray"}
             >
               Ver Médicos
+            </Button>
+          )}
+
+          {user?.rol === "medico" && viewMode === "citas" && (
+            <Button
+              onClick={() => setMostrarModalReporte(true)}
+              className="w-full sm:w-auto"
+              color="green"
+            >
+              Generar reporte de citas
             </Button>
           )}
         </div>
@@ -899,6 +1016,78 @@ const DashboardTable = () => {
           {viewMode === "pacientes" ? "pacientes" : "citas pendientes"}
         </p>
       )}
+
+      {/* Modal para generar reporte de citas */}
+      <Modal
+        show={mostrarModalReporte}
+        onClose={() => setMostrarModalReporte(false)}
+        size="md"
+      >
+        <Modal.Header>
+          <h3 className="text-xl font-medium text-gray-900 dark:text-white">
+            Generar reporte de citas
+          </h3>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Selecciona filtros opcionales para el reporte. Si no se
+              especifican fechas, se incluirán todas las citas.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label
+                  htmlFor="reporteFechaDesde"
+                  value="Fecha desde (opcional):"
+                />
+                <TextInput
+                  id="reporteFechaDesde"
+                  type="date"
+                  value={reporteFechaDesde}
+                  onChange={(e) => setReporteFechaDesde(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label
+                  htmlFor="reporteFechaHasta"
+                  value="Fecha hasta (opcional):"
+                />
+                <TextInput
+                  id="reporteFechaHasta"
+                  type="date"
+                  value={reporteFechaHasta}
+                  onChange={(e) => setReporteFechaHasta(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="reporteEstado" value="Estado de las citas:" />
+              <Select
+                id="reporteEstado"
+                value={reporteEstado}
+                onChange={(e) => setReporteEstado(e.target.value)}
+              >
+                <option value="todos">Todos los estados</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="confirmada">Confirmada</option>
+                <option value="cancelada">Cancelada</option>
+              </Select>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            onClick={generarReporteCitas}
+            disabled={generandoReporte}
+            color="success"
+          >
+            {generandoReporte ? "Generando..." : "Generar reporte"}
+          </Button>
+          <Button color="gray" onClick={() => setMostrarModalReporte(false)}>
+            Cancelar
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Formik, Form, Field, ErrorMessage } from "formik";
@@ -11,6 +11,7 @@ const CitaDetalle = () => {
   const [cita, setCita] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [medicoLogueado, setMedicoLogueado] = useState(null);
   const user = JSON.parse(localStorage.getItem("user")); // Assuming user data is stored in localStorage
 
   // Obtener la cita, con datos de paciente y médico (se supone que el backend hace los populate)
@@ -18,20 +19,50 @@ const CitaDetalle = () => {
     const fetchCita = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get(`http://localhost:8000/api/citas/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await axios.get(
+          `http://localhost:8000/api/citas/${id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setCita(response.data);
         console.log(response.data);
+
+        // Si el usuario es médico, obtener sus datos de médico
+        if (user?.rol === "medico") {
+          try {
+            const medicoResponse = await axios.get(
+              `http://localhost:8000/api/medicos/usuario/${user._id}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            setMedicoLogueado(medicoResponse.data);
+            console.log("Médico logueado:", medicoResponse.data);
+          } catch (medicoErr) {
+            console.error("Error al obtener datos del médico:", medicoErr);
+          }
+        }
+
         setError("");
       } catch (err) {
         setError("Error al obtener los datos de la cita.");
+        console.error("Error:", err);
       } finally {
         setLoading(false);
       }
     };
     fetchCita();
-  }, [id]);
+  }, [id, user]);
+
+  // Función para verificar si el médico logueado puede editar la cita
+  const puedeEditarCita = () => {
+    if (user?.rol !== "medico" || !cita || !medicoLogueado) {
+      return false;
+    }
+    // Verificar si el médico logueado es el mismo que está asignado a la cita
+    return cita.medico?._id === medicoLogueado._id;
+  };
 
   // Esquema de validación para los campos editables de la cita.
   const validationSchema = Yup.object().shape({
@@ -46,9 +77,13 @@ const CitaDetalle = () => {
   const handleSubmit = async (values) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.put(`http://localhost:8000/api/citas/${id}`, values, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.put(
+        `http://localhost:8000/api/citas/${id}`,
+        values,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       if (response.status === 200) {
         Swal.fire({
           title: "Cita actualizada exitosamente",
@@ -73,24 +108,30 @@ const CitaDetalle = () => {
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-4">Detalle de la Cita</h2>
-      
+
       {/* Datos de la cita y del paciente */}
       <div className="mb-4">
         <p>
-          <strong>Paciente:</strong>{" "}
-          {cita.paciente?.nombre} {cita.paciente?.apellido}
+          <strong>Paciente:</strong> {cita.paciente?.nombre}{" "}
+          {cita.paciente?.apellido}
         </p>
         <p>
           <strong>Cédula:</strong> {cita.paciente?.cedula}
         </p>
         <p>
-          <strong>Enfermedad Base:</strong> {cita.paciente?.enfermedadesPreexistentes==="null" ? "Ninguna" : cita.paciente?.enfermedadesPreexistentes}
+          <strong>Enfermedad Base:</strong>{" "}
+          {cita.paciente?.enfermedadesPreexistentes === "null"
+            ? "Ninguna"
+            : cita.paciente?.enfermedadesPreexistentes}
         </p>
         <p>
           <strong>Sexo:</strong> {cita.paciente?.sexo}
         </p>
         <p>
-          <strong>Alergias:</strong> {cita.paciente?.alergias === "null" ? "Ninguna" : cita.paciente?.alergias}
+          <strong>Alergias:</strong>{" "}
+          {cita.paciente?.alergias === "null"
+            ? "Ninguna"
+            : cita.paciente?.alergias}
         </p>
         <p>
           <strong>Grupo Sanguíneo:</strong> {cita.paciente?.grupoSanguineo}
@@ -102,12 +143,11 @@ const CitaDetalle = () => {
           <strong>Dirección:</strong> {cita.paciente?.direccion}
         </p>
         <p>
-          <strong>Médico:</strong>{" "}
-          {cita.medico?.usuario?.nombre} {cita.medico?.usuario?.apellido}
+          <strong>Médico:</strong> {cita.medico?.usuario?.nombre}{" "}
+          {cita.medico?.usuario?.apellido}
         </p>
         <p>
-          <strong>Fecha:</strong>{" "}
-          {new Date(cita.fecha).toLocaleDateString()}
+          <strong>Fecha:</strong> {new Date(cita.fecha).toLocaleDateString()}
         </p>
         <p>
           <strong>Hora:</strong> {cita.hora}
@@ -116,25 +156,57 @@ const CitaDetalle = () => {
 
       {user?.rol === "enfermero" && (
         <>
-        <p>
-          <strong>Estudios:</strong> {cita.estudios || "Ninguno"}
-        </p>
-        <p>
-          <strong>Observaciones:</strong> {cita.observaciones || "Ninguna"}
-        </p>
-        <button
-                  type="button"
-                  onClick={() => navigate("/dashboard")}
-                  className="bg-gray-500 text-white py-2 px-4 rounded m-5"
-                >
-                  Volver 
-                </button>
+          <p>
+            <strong>Estudios:</strong> {cita.estudios || "Ninguno"}
+          </p>
+          <p>
+            <strong>Observaciones:</strong> {cita.observaciones || "Ninguna"}
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/dashboard")}
+            className="bg-gray-500 text-white py-2 px-4 rounded m-5"
+          >
+            Volver
+          </button>
         </>
       )}
 
-      {/* Formulario para editar la cita */}
-      {user?.rol === "medico" && (
-          <Formik
+      {/* Mostrar campos como solo lectura para médicos que no pueden editar */}
+      {user?.rol === "medico" && !puedeEditarCita() && (
+        <>
+          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-800 text-sm mb-3">
+              <strong>Información:</strong> Solo el médico asignado a esta cita
+              puede editar el estado, estudios y observaciones.
+            </p>
+          </div>
+          <div className="mt-4 space-y-3">
+            <p>
+              <strong>Estado de la cita:</strong>{" "}
+              <span className="capitalize">{cita.estado || "Sin estado"}</span>
+            </p>
+            <p>
+              <strong>Estudios:</strong> {cita.estudios || "Ninguno registrado"}
+            </p>
+            <p>
+              <strong>Observaciones:</strong>{" "}
+              {cita.observaciones || "Ninguna registrada"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/dashboard")}
+            className="bg-gray-500 text-white py-2 px-4 rounded mt-4"
+          >
+            Volver
+          </button>
+        </>
+      )}
+
+      {/* Formulario para editar la cita - Solo para el médico asignado */}
+      {user?.rol === "medico" && puedeEditarCita() && (
+        <Formik
           initialValues={{
             estado: cita.estado,
             estudios: cita.estudios || "",
@@ -207,8 +279,7 @@ const CitaDetalle = () => {
             </Form>
           )}
         </Formik>
-        )}
-    
+      )}
     </div>
   );
 };

@@ -12,6 +12,10 @@ const PacienteCitas = () => {
   const [especialidades, setEspecialidades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [descargandoHistorial, setDescargandoHistorial] = useState(false);
+
+  // Obtener usuario autenticado
+  const user = JSON.parse(localStorage.getItem("user"));
 
   // Estados para filtros
   const [fechaDesde, setFechaDesde] = useState("");
@@ -143,6 +147,44 @@ const PacienteCitas = () => {
     filtroEspecialidad,
     citasOriginales,
   ]);
+
+  // Función para descargar historial médico
+  const descargarHistorialMedico = async () => {
+    try {
+      setDescargandoHistorial(true);
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `http://localhost:8000/api/pacientes/${id}/historial-medico`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al generar el historial médico");
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+
+      // Generar nombre del archivo con fecha actual
+      const fecha = new Date().toISOString().split("T")[0];
+      link.download = `historial_medico_paciente_${id}_${fecha}.xlsx`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error("Error al descargar historial:", error);
+      alert("Error al generar el historial médico. Intenta nuevamente.");
+    } finally {
+      setDescargandoHistorial(false);
+    }
+  };
 
   if (loading) return <p className="text-center">Cargando citas...</p>;
   if (error) return <p className="text-center text-red-500">{error}</p>;
@@ -346,12 +388,28 @@ const PacienteCitas = () => {
           </Table.Body>
         </Table>
       )}
-      <Button
-        onClick={() => navigate("/dashboard")}
-        className="mt-4 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
-      >
-        Volver al Dashboard
-      </Button>
+
+      <div className="flex flex-col sm:flex-row gap-4 mt-4">
+        {user?.rol === "medico" && (
+          <Button
+            onClick={descargarHistorialMedico}
+            disabled={descargandoHistorial}
+            color="success"
+            className="w-full sm:w-auto"
+          >
+            {descargandoHistorial
+              ? "Generando..."
+              : "Descargar historial médico"}
+          </Button>
+        )}
+
+        <Button
+          onClick={() => navigate("/dashboard")}
+          className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
+        >
+          Volver al Dashboard
+        </Button>
+      </div>
     </div>
   );
 };

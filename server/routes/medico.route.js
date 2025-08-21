@@ -7,6 +7,12 @@ const MedicoRouter = express.Router();
 MedicoRouter.get("/", authenticate, MedicoController.getAllMedicos); // Ruta protegida
 
 MedicoRouter.get(
+  "/indicadores",
+  authenticate,
+  MedicoController.obtenerIndicadoresMedico
+); // Ruta para indicadores del médico
+
+MedicoRouter.get(
   "/estadisticas",
   authenticate,
   MedicoController.getMedicosConEstadisticas

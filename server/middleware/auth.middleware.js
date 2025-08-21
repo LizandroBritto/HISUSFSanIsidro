@@ -23,7 +23,7 @@ const allowedRoles = {
     delete: ["administrador"],
   },
   "/api/enfermeros": {
-    get: ["administrador"],
+    get: ["administrador", "enfermero"], // Enfermeros pueden acceder a sus propios endpoints
     post: ["administrador"],
     put: ["administrador"],
     delete: ["administrador"],

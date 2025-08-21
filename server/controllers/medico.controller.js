@@ -278,4 +278,103 @@ module.exports = {
         .json({ error: "Error al obtener médicos con estadísticas" });
     }
   },
+
+  // Obtener indicadores del médico logueado
+  obtenerIndicadoresMedico: async (req, res) => {
+    try {
+      const usuario = req.user;
+
+      // Solo médicos pueden acceder a estos indicadores
+      if (usuario.rol !== "medico") {
+        return res.status(403).json({
+          success: false,
+          message: "Solo los médicos pueden acceder a estos indicadores",
+        });
+      }
+
+      // Buscar el médico correspondiente al usuario
+      const medico = await Medico.findOne({ usuario: usuario._id });
+      if (!medico) {
+        return res.status(404).json({
+          success: false,
+          message: "No se encontró información del médico",
+        });
+      }
+
+      // Obtener fechas para los cálculos
+      const ahora = new Date();
+      const hoy = new Date(
+        ahora.getFullYear(),
+        ahora.getMonth(),
+        ahora.getDate()
+      );
+      const inicioSemana = new Date(hoy);
+      inicioSemana.setDate(hoy.getDate() - hoy.getDay()); // Domingo de esta semana
+      const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+
+      const Cita = require("../models/cita.model");
+
+      // Obtener todas las citas del médico para calcular indicadores
+      const [
+        pacientesAtendidosHoy,
+        pacientesAtendidosSemana,
+        pacientesAtendidosMes,
+        citasPendientes,
+        citasCanceladas,
+      ] = await Promise.all([
+        // Pacientes atendidos hoy (citas confirmadas de hoy)
+        Cita.countDocuments({
+          medico: medico._id,
+          fecha: {
+            $gte: hoy,
+            $lt: new Date(hoy.getTime() + 24 * 60 * 60 * 1000),
+          },
+          estado: "confirmada",
+        }),
+
+        // Pacientes atendidos esta semana (citas confirmadas de esta semana)
+        Cita.countDocuments({
+          medico: medico._id,
+          fecha: { $gte: inicioSemana, $lte: ahora },
+          estado: "confirmada",
+        }),
+
+        // Pacientes atendidos este mes (citas confirmadas de este mes)
+        Cita.countDocuments({
+          medico: medico._id,
+          fecha: { $gte: inicioMes, $lte: ahora },
+          estado: "confirmada",
+        }),
+
+        // Citas pendientes (todas las pendientes del médico)
+        Cita.countDocuments({
+          medico: medico._id,
+          estado: "pendiente",
+        }),
+
+        // Citas canceladas (total de canceladas del médico)
+        Cita.countDocuments({
+          medico: medico._id,
+          estado: "cancelada",
+        }),
+      ]);
+
+      const indicadores = {
+        pacientesAtendidosHoy,
+        pacientesAtendidosSemana,
+        pacientesAtendidosMes,
+        citasPendientes,
+        citasCanceladas,
+      };
+
+      res.json(indicadores);
+    } catch (error) {
+      console.error("Error al obtener indicadores del médico:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error al obtener los indicadores",
+        error: error.message,
+      });
+    }
+  },
 };

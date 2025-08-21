@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -44,6 +44,27 @@ const DashboardTable = () => {
   const [reporteFechaHasta, setReporteFechaHasta] = useState("");
   const [reporteEstado, setReporteEstado] = useState("todos");
   const [generandoReporte, setGenerandoReporte] = useState(false);
+
+  // Estados para indicadores del médico
+  const [indicadoresMedico, setIndicadoresMedico] = useState({
+    pacientesAtendidosHoy: 0,
+    pacientesAtendidosSemana: 0,
+    pacientesAtendidosMes: 0,
+    citasPendientes: 0,
+    citasCanceladas: 0,
+  });
+  const [cargandoIndicadores, setCargandoIndicadores] = useState(false);
+
+  // Estados para indicadores del enfermero (globales)
+  const [indicadoresEnfermero, setIndicadoresEnfermero] = useState({
+    pacientesAtendidosHoy: 0,
+    pacientesAtendidosSemana: 0,
+    pacientesAtendidosMes: 0,
+    citasPendientes: 0,
+    citasCanceladas: 0,
+  });
+  const [cargandoIndicadoresEnfermero, setCargandoIndicadoresEnfermero] =
+    useState(false);
 
   // Función para alternar entre vistas (citas, pacientes y médicos)
   const toggleView = (mode) => {
@@ -223,6 +244,78 @@ const DashboardTable = () => {
     }
   };
 
+  // Función para obtener indicadores del médico
+  const obtenerIndicadoresMedico = useCallback(async () => {
+    if (user?.rol !== "medico") return;
+
+    try {
+      setCargandoIndicadores(true);
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `http://localhost:8000/api/medicos/indicadores`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al obtener indicadores");
+      }
+
+      const data = await response.json();
+      setIndicadoresMedico(data);
+    } catch (error) {
+      console.error("Error al obtener indicadores:", error);
+      // Mantener valores por defecto en caso de error
+      setIndicadoresMedico({
+        pacientesAtendidosHoy: 0,
+        pacientesAtendidosSemana: 0,
+        pacientesAtendidosMes: 0,
+        citasPendientes: 0,
+        citasCanceladas: 0,
+      });
+    } finally {
+      setCargandoIndicadores(false);
+    }
+  }, [user?.rol]); // Solo depende del rol del usuario
+
+  // Función para obtener indicadores globales del enfermero
+  const obtenerIndicadoresEnfermero = useCallback(async () => {
+    if (user?.rol !== "enfermero") return;
+
+    try {
+      setCargandoIndicadoresEnfermero(true);
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `http://localhost:8000/api/enfermeros/indicadores/globales`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al obtener indicadores globales");
+      }
+
+      const data = await response.json();
+      setIndicadoresEnfermero(data);
+    } catch (error) {
+      console.error("Error al obtener indicadores globales:", error);
+      // Mantener valores por defecto en caso de error
+      setIndicadoresEnfermero({
+        pacientesAtendidosHoy: 0,
+        pacientesAtendidosSemana: 0,
+        pacientesAtendidosMes: 0,
+        citasPendientes: 0,
+        citasCanceladas: 0,
+      });
+    } finally {
+      setCargandoIndicadoresEnfermero(false);
+    }
+  }, [user?.rol]); // Solo depende del rol del usuario
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -357,6 +450,20 @@ const DashboardTable = () => {
     filtroEspecialidad,
   ]);
 
+  // useEffect para cargar indicadores del médico
+  useEffect(() => {
+    if (user?.rol === "medico") {
+      obtenerIndicadoresMedico();
+    }
+  }, [user?.rol, obtenerIndicadoresMedico]); // Incluye ambas dependencias
+
+  // useEffect para cargar indicadores globales del enfermero
+  useEffect(() => {
+    if (user?.rol === "enfermero") {
+      obtenerIndicadoresEnfermero();
+    }
+  }, [user?.rol, obtenerIndicadoresEnfermero]); // Incluye ambas dependencias
+
   // Función para filtrar y ordenar los datos
   const getProcessedData = () => {
     let processed = [...data];
@@ -473,6 +580,330 @@ const DashboardTable = () => {
 
   return (
     <div className="overflow-x-auto p-4">
+      {/* Indicadores para médicos */}
+      {user?.rol === "medico" && (
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
+            Indicadores de Actividad
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+            <div className="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-600 dark:text-blue-300 text-sm font-medium">
+                    Pacientes Hoy
+                  </p>
+                  <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                    {cargandoIndicadores
+                      ? "..."
+                      : indicadoresMedico.pacientesAtendidosHoy}
+                  </p>
+                  <p className="text-xs text-blue-500 dark:text-blue-400">
+                    Citas confirmadas
+                  </p>
+                </div>
+                <div className="text-blue-500">
+                  <svg
+                    className="w-8 h-8"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-green-50 dark:bg-green-900 p-4 rounded-lg border border-green-200 dark:border-green-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-600 dark:text-green-300 text-sm font-medium">
+                    Esta Semana
+                  </p>
+                  <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                    {cargandoIndicadores
+                      ? "..."
+                      : indicadoresMedico.pacientesAtendidosSemana}
+                  </p>
+                  <p className="text-xs text-green-500 dark:text-green-400">
+                    Pacientes atendidos
+                  </p>
+                </div>
+                <div className="text-green-500">
+                  <svg
+                    className="w-8 h-8"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-purple-50 dark:bg-purple-900 p-4 rounded-lg border border-purple-200 dark:border-purple-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-600 dark:text-purple-300 text-sm font-medium">
+                    Este Mes
+                  </p>
+                  <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                    {cargandoIndicadores
+                      ? "..."
+                      : indicadoresMedico.pacientesAtendidosMes}
+                  </p>
+                  <p className="text-xs text-purple-500 dark:text-purple-400">
+                    Pacientes atendidos
+                  </p>
+                </div>
+                <div className="text-purple-500">
+                  <svg
+                    className="w-8 h-8"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                    <path
+                      fillRule="evenodd"
+                      d="M4 5a2 2 0 012-2v1a2 2 0 002 2v1a2 2 0 002 2v1a2 2 0 002 2v1a2 2 0 002 2v1a2 2 0 002 2v1a2 2 0 002 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg border border-yellow-200 dark:border-yellow-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-yellow-600 dark:text-yellow-300 text-sm font-medium">
+                    Pendientes
+                  </p>
+                  <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
+                    {cargandoIndicadores
+                      ? "..."
+                      : indicadoresMedico.citasPendientes}
+                  </p>
+                  <p className="text-xs text-yellow-500 dark:text-yellow-400">
+                    Citas por confirmar
+                  </p>
+                </div>
+                <div className="text-yellow-500">
+                  <svg
+                    className="w-8 h-8"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-red-50 dark:bg-red-900 p-4 rounded-lg border border-red-200 dark:border-red-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-red-600 dark:text-red-300 text-sm font-medium">
+                    Canceladas
+                  </p>
+                  <p className="text-2xl font-bold text-red-900 dark:text-red-100">
+                    {cargandoIndicadores
+                      ? "..."
+                      : indicadoresMedico.citasCanceladas}
+                  </p>
+                  <p className="text-xs text-red-500 dark:text-red-400">
+                    Citas canceladas
+                  </p>
+                </div>
+                <div className="text-red-500">
+                  <svg
+                    className="w-8 h-8"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Indicadores globales para enfermeros */}
+      {user?.rol === "enfermero" && (
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
+            Indicadores Globales del Sistema
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+            <div className="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-600 dark:text-blue-300 text-sm font-medium">
+                    Pacientes Hoy
+                  </p>
+                  <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                    {cargandoIndicadoresEnfermero
+                      ? "..."
+                      : indicadoresEnfermero.pacientesAtendidosHoy}
+                  </p>
+                  <p className="text-xs text-blue-500 dark:text-blue-400">
+                    Citas confirmadas
+                  </p>
+                </div>
+                <div className="text-blue-500">
+                  <svg
+                    className="w-8 h-8"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-green-50 dark:bg-green-900 p-4 rounded-lg border border-green-200 dark:border-green-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-600 dark:text-green-300 text-sm font-medium">
+                    Esta Semana
+                  </p>
+                  <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                    {cargandoIndicadoresEnfermero
+                      ? "..."
+                      : indicadoresEnfermero.pacientesAtendidosSemana}
+                  </p>
+                  <p className="text-xs text-green-500 dark:text-green-400">
+                    Pacientes atendidos
+                  </p>
+                </div>
+                <div className="text-green-500">
+                  <svg
+                    className="w-8 h-8"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-purple-50 dark:bg-purple-900 p-4 rounded-lg border border-purple-200 dark:border-purple-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-600 dark:text-purple-300 text-sm font-medium">
+                    Este Mes
+                  </p>
+                  <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                    {cargandoIndicadoresEnfermero
+                      ? "..."
+                      : indicadoresEnfermero.pacientesAtendidosMes}
+                  </p>
+                  <p className="text-xs text-purple-500 dark:text-purple-400">
+                    Pacientes atendidos
+                  </p>
+                </div>
+                <div className="text-purple-500">
+                  <svg
+                    className="w-8 h-8"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                    <path
+                      fillRule="evenodd"
+                      d="M4 5a2 2 0 012-2v1a2 2 0 002 2v1a2 2 0 002 2v1a2 2 0 002 2v1a2 2 0 002 2v1a2 2 0 002 2v1a2 2 0 002 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg border border-yellow-200 dark:border-yellow-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-yellow-600 dark:text-yellow-300 text-sm font-medium">
+                    Pendientes
+                  </p>
+                  <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
+                    {cargandoIndicadoresEnfermero
+                      ? "..."
+                      : indicadoresEnfermero.citasPendientes}
+                  </p>
+                  <p className="text-xs text-yellow-500 dark:text-yellow-400">
+                    Citas por confirmar
+                  </p>
+                </div>
+                <div className="text-yellow-500">
+                  <svg
+                    className="w-8 h-8"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-red-50 dark:bg-red-900 p-4 rounded-lg border border-red-200 dark:border-red-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-red-600 dark:text-red-300 text-sm font-medium">
+                    Canceladas
+                  </p>
+                  <p className="text-2xl font-bold text-red-900 dark:text-red-100">
+                    {cargandoIndicadoresEnfermero
+                      ? "..."
+                      : indicadoresEnfermero.citasCanceladas}
+                  </p>
+                  <p className="text-xs text-red-500 dark:text-red-400">
+                    Citas canceladas
+                  </p>
+                </div>
+                <div className="text-red-500">
+                  <svg
+                    className="w-8 h-8"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Barra de búsqueda y botones de acción */}
       <div className="mb-4 flex flex-col sm:flex-row gap-4">
         <TextInput

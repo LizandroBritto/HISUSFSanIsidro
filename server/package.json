@@ -8,6 +8,8 @@
     "seed:admin": "node seeders/adminSeeder.js",
     "reset:admin": "node seeders/resetAdminPassword.js",
     "seed:logs": "node seeders/crearLogsPrueba.js",
+    "seed:citas": "node seeders/citasSeeder.js",
+    "manage:citas": "node seeders/manageCitas.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -32,6 +34,7 @@
     "yup": "^1.4.0"
   },
   "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
     "nodemon": "^3.1.10"
   }
 }
